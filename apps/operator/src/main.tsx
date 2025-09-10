@@ -168,7 +168,6 @@ function App(){
   
   function openMatch(m: MatchInfo){
     setCurrent(m);
-    setIsSidebarCollapsed(true); // Rétracter la sidebar
     const key = `${m.org_id}:${m.id}`;
     const newState = initMatchState(key, m.sport);
     setState(newState);
@@ -241,7 +240,7 @@ function App(){
                     <button 
                       onClick={()=>deleteMatch(m.id)} 
                       className="danger"
-                      style={{fontSize: '12px', padding: '6px 8px'}}
+                      title="Supprimer le match"
                     >
                       🗑️
                     </button>

@@ -53,6 +53,7 @@ function App(){
   const [displayUrl, setDisplayUrl] = useState<string>('');
   const [chan, setChan] = useState<any>(null);
   const [createMsg, setCreateMsg] = useState<string>('');
+  const [isCreateSectionCollapsed, setIsCreateSectionCollapsed] = useState(false);
 
   useEffect(()=>{ 
     if (!user) return; 
@@ -131,6 +132,7 @@ function App(){
   }
   function openMatch(m: MatchInfo){
     setCurrent(m);
+    setIsCreateSectionCollapsed(true); // Rétracter la section de création
     const key = `${m.org_id}:${m.id}`;
     const newState = initMatchState(key, m.sport);
     setState(newState);
@@ -174,14 +176,22 @@ function App(){
           </button>
         </div>
 
-        <div className="sep" /><h2 className="h1">Nouveau match</h2>
-        <div className="row"><input className="input" placeholder="Nom" value={form.name} onChange={e=>setForm({...form, name:e.target.value})} style={{width:260}}/></div>
-        <div className="row"><label>Sport</label><select value={form.sport} onChange={e=>setForm({...form, sport: e.target.value as Sport})}>{SPORTS.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
-        <div className="row"><input className="input" placeholder="Équipe A" value={form.home_name} onChange={e=>setForm({...form, home_name:e.target.value})} style={{width:160}}/>
-          <input className="input" placeholder="Équipe B" value={form.away_name} onChange={e=>setForm({...form, away_name:e.target.value})} style={{width:160}}/></div>
-        <div className="row"><input className="input" type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} />
-          <input className="input" type="time" value={form.time} onChange={e=>setForm({...form, time:e.target.value})} /><button onClick={createMatch}>Créer</button></div>
-        {createMsg && <div className="small" style={{color: createMsg.includes('Erreur') ? '#ff6b6b' : '#4ade80'}}>{createMsg}</div>}
+        <div className="sep" />
+        <div className={`collapsible-section ${isCreateSectionCollapsed ? 'collapsed' : 'expanded'}`}>
+          <div className="collapse-toggle" onClick={() => setIsCreateSectionCollapsed(!isCreateSectionCollapsed)}>
+            <h2 className="h1" style={{margin: 0}}>Nouveau match</h2>
+            <span className={`collapse-icon ${isCreateSectionCollapsed ? '' : 'rotated'}`}>▼</span>
+          </div>
+          <div className="collapsible-content">
+            <div className="row"><input className="input" placeholder="Nom" value={form.name} onChange={e=>setForm({...form, name:e.target.value})} style={{width:260}}/></div>
+            <div className="row"><label>Sport</label><select value={form.sport} onChange={e=>setForm({...form, sport: e.target.value as Sport})}>{SPORTS.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
+            <div className="row"><input className="input" placeholder="Équipe A" value={form.home_name} onChange={e=>setForm({...form, home_name:e.target.value})} style={{width:160}}/>
+              <input className="input" placeholder="Équipe B" value={form.away_name} onChange={e=>setForm({...form, away_name:e.target.value})} style={{width:160}}/></div>
+            <div className="row"><input className="input" type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} />
+              <input className="input" type="time" value={form.time} onChange={e=>setForm({...form, time:e.target.value})} /><button onClick={createMatch}>Créer</button></div>
+            {createMsg && <div className="small" style={{color: createMsg.includes('Erreur') ? '#ff6b6b' : '#4ade80'}}>{createMsg}</div>}
+          </div>
+        </div>
 
         <div className="sep" /><h2 className="h1">Matches</h2>
         <div className="list">{matches.map(m => (<div key={m.id} className="item"><div><div>{m.name} <span className="small">({m.sport})</span></div><div className="small">{new Date(m.scheduled_at).toLocaleString()} • <span className="badge">{m.status}</span></div></div><div className="row"><button onClick={()=>openMatch(m)}>Sélectionner</button></div></div>))}</div>

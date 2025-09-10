@@ -57,7 +57,7 @@ function App(){
   useEffect(()=>{ if (!user) return; (async()=>{
       const { data: orgs } = await supa.from('org_members_with_org').select('*').eq('user_id', user.id);
       setOrgs(orgs||[]);
-      if (orgs && orgs.length > 0) {
+      if (orgs && orgs.length > 0 && !org) {
         const userOrg = orgs[0]; // Prendre la première organisation de l'utilisateur
         setOrg({ 
           id: userOrg.org_id, 
@@ -65,11 +65,21 @@ function App(){
           name: userOrg.org_name || userOrg.name 
         });
       }
-  })(); }, [user]);
+  })(); }, [user, org]);
 
-  useEffect(()=>{ if (!org) return; (async()=>{ const { data } = await supa.from('matches').select('*').eq('org_id', org.id).order('scheduled_at'); setMatches((data as any)||[]); })(); }, [org?.id]);
+  useEffect(()=>{ 
+    if (!org?.id) return; 
+    (async()=>{ 
+      const { data } = await supa.from('matches').select('*').eq('org_id', org.id).order('scheduled_at'); 
+      setMatches((data as any)||[]); 
+    })(); 
+  }, [org?.id]);
 
-  useEffect(()=>{ if (!state) return; const id = setInterval(()=> setState(prev => prev ? applyTick(prev) : prev), 100); return ()=>clearInterval(id); }, [state?.matchId]);
+  useEffect(()=>{ 
+    if (!state?.matchId) return; 
+    const id = setInterval(()=> setState(prev => prev ? applyTick(prev) : prev), 100); 
+    return ()=>clearInterval(id); 
+  }, [state?.matchId]);
 
   function scheduleISO(){ if (!form.date) return new Date().toISOString(); const hhmm = (form.time||'00:00').split(':'); const d = new Date(`${form.date}T${hhmm[0].padStart(2,'0')}:${(hhmm[1]||'00').padStart(2,'0')}:00`); return d.toISOString(); }
   async function createMatch(){
@@ -122,12 +132,26 @@ function App(){
     const s = initMatchState(key, m.sport);
     setState(s);
     if (chan) chan.close();
-    const c = createOperatorChannel(m.org_slug || 'org', m.id, m.display_token, 
-      () => { if (s) c.publish(s, m); }, 
-      () => { if (s) c.publish(s, m); }
+    const c = createOperatorChannel(
+      m.org_slug || 'org', 
+      m.id, 
+      m.display_token, 
+      () => { 
+        const currentState = s;
+        if (currentState) c.publish(currentState, m); 
+      }, 
+      () => { 
+        const currentState = s;
+        if (currentState) c.publish(currentState, m); 
+      }
     );
     setChan(c);
-    const u = new URL('http://localhost:5174/'); u.searchParams.set('org', m.org_slug||'org'); u.searchParams.set('match', m.id); u.searchParams.set('token', m.display_token); u.searchParams.set('ui','1'); setDisplayUrl(u.toString());
+    const u = new URL('http://localhost:5174/'); 
+    u.searchParams.set('org', m.org_slug||'org'); 
+    u.searchParams.set('match', m.id); 
+    u.searchParams.set('token', m.display_token); 
+    u.searchParams.set('ui','1'); 
+    setDisplayUrl(u.toString());
   }
 
   function send(type:string, payload?:any){

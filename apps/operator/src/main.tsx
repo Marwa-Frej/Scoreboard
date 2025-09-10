@@ -52,6 +52,7 @@ function App(){
   const [form, setForm] = useState({ name:'Match', sport:'basic' as Sport, home_name:'HOME', away_name:'AWAY', date:'', time:'' });
   const [displayUrl, setDisplayUrl] = useState<string>('');
   const [chan, setChan] = useState<any>(null);
+  const [createMsg, setCreateMsg] = useState<string>('');
 
   useEffect(()=>{ if (!user) return; (async()=>{
       const { data: orgs } = await supa.from('org_members_with_org').select('*').eq('user_id', user.id);
@@ -66,10 +67,18 @@ function App(){
   function scheduleISO(){ if (!form.date) return new Date().toISOString(); const hhmm = (form.time||'00:00').split(':'); const d = new Date(`${form.date}T${hhmm[0].padStart(2,'0')}:${(hhmm[1]||'00').padStart(2,'0')}:00`); return d.toISOString(); }
   async function createMatch(){
     if (!org) return;
+    setCreateMsg('Création en cours...');
     const display_token = crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
     const { data, error } = await supa.from('matches').insert({ org_id: org.id, name: form.name, sport: form.sport, home_name: form.home_name, away_name: form.away_name, scheduled_at: scheduleISO(), status: 'scheduled', public_display: true, display_token }).select('*').single();
-    if (error) { alert(error.message); return; }
+    if (error) { 
+      setCreateMsg(`Erreur: ${error.message}`);
+      setTimeout(() => setCreateMsg(''), 5000);
+      return; 
+    }
     setMatches(prev => [...prev, data as any]);
+    setCreateMsg('Match créé avec succès !');
+    setTimeout(() => setCreateMsg(''), 3000);
+    setForm({ name:'Match', sport:'basic' as Sport, home_name:'HOME', away_name:'AWAY', date:'', time:'' });
   }
   function openMatch(m: MatchInfo){
     setCurrent(m);
@@ -108,6 +117,7 @@ function App(){
           <input className="input" placeholder="Équipe B" value={form.away_name} onChange={e=>setForm({...form, away_name:e.target.value})} style={{width:160}}/></div>
         <div className="row"><input className="input" type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} />
           <input className="input" type="time" value={form.time} onChange={e=>setForm({...form, time:e.target.value})} /><button onClick={createMatch}>Créer</button></div>
+        {createMsg && <div className="small" style={{color: createMsg.includes('Erreur') ? '#ff6b6b' : '#4ade80'}}>{createMsg}</div>}
 
         <div className="sep" /><h2 className="h1">Matches</h2>
         <div className="list">{matches.map(m => (<div key={m.id} className="item"><div><div>{m.name} <span className="small">({m.sport})</span></div><div className="small">{new Date(m.scheduled_at).toLocaleString()} • <span className="badge">{m.status}</span></div></div><div className="row"><button onClick={()=>openMatch(m)}>Sélectionner</button></div></div>))}</div>

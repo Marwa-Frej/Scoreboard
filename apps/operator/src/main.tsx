@@ -119,8 +119,11 @@ function App(){
     <div className="app">
       <div className="card">
         <h2 className="h1">Espace</h2>
-        <div className="row">
+        <div className="row" style={{justifyContent: 'space-between'}}>
           <div><strong>{org?.name || 'Aucun espace disponible'}</strong></div>
+          <button onClick={() => supa.auth.signOut()} style={{background: '#dc2626', borderColor: '#dc2626'}}>
+            Déconnexion
+          </button>
         </div>
 
         <div className="sep" /><h2 className="h1">Nouveau match</h2>

@@ -53,7 +53,7 @@ function App(){
   const [displayUrl, setDisplayUrl] = useState<string>('');
   const [chan, setChan] = useState<any>(null);
   const [createMsg, setCreateMsg] = useState<string>('');
-  const [isCreateSectionCollapsed, setIsCreateSectionCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(()=>{ 
     if (!user) return; 
@@ -132,7 +132,7 @@ function App(){
   }
   function openMatch(m: MatchInfo){
     setCurrent(m);
-    setIsCreateSectionCollapsed(true); // Rétracter la section de création
+    setIsSidebarCollapsed(true); // Rétracter la sidebar
     const key = `${m.org_id}:${m.id}`;
     const newState = initMatchState(key, m.sport);
     setState(newState);
@@ -166,23 +166,24 @@ function App(){
 
   if (!user) return <Login/>;
   return (
-    <div className="app">
-      <div className="card">
-        <h2 className="h1">Espace</h2>
-        <div className="row" style={{justifyContent: 'space-between'}}>
-          <div><strong>{org?.name || 'Aucun espace disponible'}</strong></div>
-          <button onClick={() => supa.auth.signOut()} style={{background: '#dc2626', borderColor: '#dc2626'}}>
-            Déconnexion
-          </button>
+    <div className={`app ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+        <div className="sidebar-toggle" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
+          <span className="sidebar-toggle-icon">◀</span>
         </div>
+        
+        <div className="sidebar-content">
+          <div className="card">
+            <h2 className="h1">Espace</h2>
+            <div className="row" style={{justifyContent: 'space-between'}}>
+              <div><strong>{org?.name || 'Aucun espace disponible'}</strong></div>
+              <button onClick={() => supa.auth.signOut()} style={{background: '#dc2626', borderColor: '#dc2626'}}>
+                Déconnexion
+              </button>
+            </div>
 
-        <div className="sep" />
-        <div className={`collapsible-section ${isCreateSectionCollapsed ? 'collapsed' : 'expanded'}`}>
-          <div className="collapse-toggle" onClick={() => setIsCreateSectionCollapsed(!isCreateSectionCollapsed)}>
-            <h2 className="h1" style={{margin: 0}}>Nouveau match</h2>
-            <span className={`collapse-icon ${isCreateSectionCollapsed ? '' : 'rotated'}`}>▼</span>
-          </div>
-          <div className="collapsible-content">
+            <div className="sep" />
+            <h2 className="h1">Nouveau match</h2>
             <div className="row"><input className="input" placeholder="Nom" value={form.name} onChange={e=>setForm({...form, name:e.target.value})} style={{width:260}}/></div>
             <div className="row"><label>Sport</label><select value={form.sport} onChange={e=>setForm({...form, sport: e.target.value as Sport})}>{SPORTS.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
             <div className="row"><input className="input" placeholder="Équipe A" value={form.home_name} onChange={e=>setForm({...form, home_name:e.target.value})} style={{width:160}}/>
@@ -190,17 +191,17 @@ function App(){
             <div className="row"><input className="input" type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} />
               <input className="input" type="time" value={form.time} onChange={e=>setForm({...form, time:e.target.value})} /><button onClick={createMatch}>Créer</button></div>
             {createMsg && <div className="small" style={{color: createMsg.includes('Erreur') ? '#ff6b6b' : '#4ade80'}}>{createMsg}</div>}
+
+            <div className="sep" /><h2 className="h1">Matches</h2>
+            <div className="list">{matches.map(m => (<div key={m.id} className="item"><div><div>{m.name} <span className="small">({m.sport})</span></div><div className="small">{new Date(m.scheduled_at).toLocaleString()} • <span className="badge">{m.status}</span></div></div><div className="row"><button onClick={()=>openMatch(m)}>Sélectionner</button></div></div>))}</div>
+
+            {displayUrl && <div className="sep"/ >}
+            {displayUrl && <div className="small">Lien Display : <a href={displayUrl} target="_blank">{displayUrl}</a></div>}
           </div>
         </div>
-
-        <div className="sep" /><h2 className="h1">Matches</h2>
-        <div className="list">{matches.map(m => (<div key={m.id} className="item"><div><div>{m.name} <span className="small">({m.sport})</span></div><div className="small">{new Date(m.scheduled_at).toLocaleString()} • <span className="badge">{m.status}</span></div></div><div className="row"><button onClick={()=>openMatch(m)}>Sélectionner</button></div></div>))}</div>
-
-        {displayUrl && <div className="sep"/ >}
-        {displayUrl && <div className="small">Lien Display : <a href={displayUrl} target="_blank">{displayUrl}</a></div>}
       </div>
 
-      <div className="card preview">{!current || !state ? <div className="small">Sélectionne un match…</div> : (
+      <div className={`card preview match-area ${isSidebarCollapsed ? 'expanded' : ''}`}>{!current || !state ? <div className="small">Sélectionne un match…</div> : (
         <div style={{width:'100%', height:'100%', display:'grid', gridTemplateRows:'auto auto auto 1fr', gap:16}}>
           <div className="row" style={{justifyContent:'space-between', padding:'0 4px'}}>
             <div><strong>{current.name}</strong> — {current.home_name} vs {current.away_name} <span className="small">({state.sport})</span></div>

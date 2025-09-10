@@ -100,9 +100,6 @@ function HandballPanel({send}:{send:(a:string,p?:any)=>void}){
       </ControlSection>
     </div>
   );
-    <button onClick={()=>send('hb:init')}>Init Handball</button><button onClick={()=>send('hb:timeout',{team:'home'})}>TO Home</button><button onClick={()=>send('hb:timeout',{team:'away'})}>TO Away</button>
-    <button onClick={()=>send('hb:susp',{team:'home',minutes:2})}>2' Home</button><button onClick={()=>send('hb:susp',{team:'away',minutes:2})}>2' Away</button>
-  </Row>;
 }
 
 function BasketPanel({state, send}:{state:MatchState, send:(a:string,p?:any)=>void}){
@@ -182,3 +179,8 @@ function HockeyFieldPanel({send}:{send:(a:string,p?:any)=>void}){
 }
 
 function VolleyballPanel({send}:{send:(a:string,p?:any)=>void}){
+  return (
+    <div className="match-controls">
+    </div>
+  );
+}

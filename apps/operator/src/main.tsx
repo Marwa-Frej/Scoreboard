@@ -112,10 +112,15 @@ function App(){
     <div className="app">
       <div className="card">
         <h2 className="h1">Espace</h2>
+        {org && (
+          <div className="row">
+            <div className="small">Espace sélectionné: <strong>{org.name}</strong></div>
+          </div>
+        )}
         <div className="row">
           <select value={org?.id||''} onChange={e=>{ const o = orgs.find(x=>x.org_id===e.target.value); setOrg(o?{ id:o.org_id, slug:o.org_slug, name:o.org_name }:null); }}>
             <option value="">Sélectionner un espace...</option>
-            {orgs.map(o => <option key={o.org_id} value={o.org_id}>{o.org_name || o.name}</option>)}
+            {orgs.map(o => <option key={o.org_id} value={o.org_id}>{o.org_name}</option>)}
           </select>
         </div>
 

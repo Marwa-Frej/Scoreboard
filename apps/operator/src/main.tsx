@@ -66,9 +66,18 @@ function App(){
 
   function scheduleISO(){ if (!form.date) return new Date().toISOString(); const hhmm = (form.time||'00:00').split(':'); const d = new Date(`${form.date}T${hhmm[0].padStart(2,'0')}:${(hhmm[1]||'00').padStart(2,'0')}:00`); return d.toISOString(); }
   async function createMatch(){
-    if (!org) return;
+    if (!org) {
+      setCreateMsg('Erreur: Veuillez sélectionner un espace d\'abord');
+      setTimeout(() => setCreateMsg(''), 5000);
+      return;
+    }
+    if (!form.name.trim()) {
+      setCreateMsg('Erreur: Le nom du match est requis');
+      setTimeout(() => setCreateMsg(''), 5000);
+      return;
+    }
     setCreateMsg('Création en cours...');
-    const display_token = crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
+    const display_token = Math.random().toString(36).substring(2, 15);
     const { data, error } = await supa.from('matches').insert({ org_id: org.id, name: form.name, sport: form.sport, home_name: form.home_name, away_name: form.away_name, scheduled_at: scheduleISO(), status: 'scheduled', public_display: true, display_token }).select('*').single();
     if (error) { 
       setCreateMsg(`Erreur: ${error.message}`);

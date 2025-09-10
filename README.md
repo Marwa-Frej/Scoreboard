@@ -6,6 +6,6 @@ Monorepo Vite (Operator + Display) utilisant Supabase (Auth + Realtime + Postgre
 - SQL: voir `supabase/`
 
 ## Lancer
-npm install
+pnpm install
 cp .env.example .env
-npm run dev
+pnpm run dev

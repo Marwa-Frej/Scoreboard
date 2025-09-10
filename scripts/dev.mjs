@@ -1,3 +1,3 @@
 import { execSync } from 'node:child_process';
-const cmd = `npx concurrently -n operator,display -c auto "npm run dev -w @app/operator" "npm run dev -w @app/display"`;
+const cmd = `npx concurrently -n operator,display -c auto "pnpm --filter @app/operator dev" "pnpm --filter @app/display dev"`;
 execSync(cmd, { stdio: 'inherit' });

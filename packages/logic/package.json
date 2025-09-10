@@ -1,0 +1,9 @@
+{
+  "name": "@pkg/logic",
+  "version": "3.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@pkg/types": "workspace:*"
+  }
+}

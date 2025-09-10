@@ -191,11 +191,43 @@ function App(){
       </div>
 
       <div className="card preview">{!current || !state ? <div className="small">Sélectionne un match…</div> : (
-        <div style={{width:'100%', height:'100%', display:'grid', gridTemplateRows:'auto 1fr auto', gap:8}}>
-          <div className="row" style={{justifyContent:'space-between'}}><div><strong>{current.name}</strong> — {current.home_name} vs {current.away_name} <span className="small">({state.sport})</span></div>
-          <div className="row"><select value={state.sport} onChange={e=>send('sport:set', { sport: e.target.value })}>{SPORTS.map(s=><option key={s} value={s}>{s}</option>)}</select></div></div>
-          <div style={{background:'#000', borderRadius:12, border:'1px solid #222', overflow:'hidden'}}><Preview state={state} home={current.home_name} away={current.away_name}/></div>
-          <div><div className="row" style={{marginBottom:8}}><button onClick={()=>send('clock:start')}>▶</button><button onClick={()=>send('clock:stop')}>⏸</button><button onClick={()=>send('clock:reset')}>⟲</button><button onClick={()=>send('period:next')}>Période +1</button><span>Score</span><button onClick={()=>send('score:inc',{team:'home'})}>Home +1</button><button onClick={()=>send('score:dec',{team:'home'})}>Home −1</button><button onClick={()=>send('score:inc',{team:'away'})}>Away +1</button><button onClick={()=>send('score:dec',{team:'away'})}>Away −1</button></div><Panel state={state} send={(a,p)=>send(a,p) as any}/></div>
+        <div style={{width:'100%', height:'100%', display:'grid', gridTemplateRows:'auto auto auto 1fr', gap:16}}>
+          <div className="row" style={{justifyContent:'space-between', padding:'0 4px'}}>
+            <div><strong>{current.name}</strong> — {current.home_name} vs {current.away_name} <span className="small">({state.sport})</span></div>
+            <select value={state.sport} onChange={e=>send('sport:set', { sport: e.target.value })} style={{minWidth:'120px'}}>
+              {SPORTS.map(s=><option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          
+          <div className="main-score">
+            <div className="team-score">
+              <div className="team-name">{current.home_name}</div>
+              <div className="score-display">{state.score.home.toString().padStart(2,'0')}</div>
+            </div>
+            <div className="score-vs">:</div>
+            <div className="team-score">
+              <div className="team-name">{current.away_name}</div>
+              <div className="score-display">{state.score.away.toString().padStart(2,'0')}</div>
+            </div>
+          </div>
+          
+          {state.sport !== 'volleyball' && (
+            <div className="time-controls">
+              <button className="primary" onClick={()=>send('clock:start')}>▶</button>
+              <button className="danger" onClick={()=>send('clock:stop')}>⏸</button>
+              <div className="time-display">
+                {Math.floor(state.clock.remainingMs/60000).toString().padStart(2,'0')}:
+                {Math.floor((state.clock.remainingMs%60000)/1000).toString().padStart(2,'0')}
+              </div>
+              <div className="period-display">Période {state.clock.period}</div>
+              <button onClick={()=>send('clock:reset')}>⟲ Reset</button>
+              <button onClick={()=>send('period:next')}>Période +1</button>
+            </div>
+          )}
+          
+          <div style={{overflow:'auto'}}>
+            <Panel state={state} send={(a,p)=>send(a,p) as any}/>
+          </div>
         </div>
       )}</div>
     </div>

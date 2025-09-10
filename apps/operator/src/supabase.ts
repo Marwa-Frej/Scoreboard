@@ -1,2 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
-export const supa = createClient(import.meta.env.VITE_SUPABASE_URL as string, import.meta.env.VITE_SUPABASE_ANON_KEY as string);
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl) {
+  throw new Error('VITE_SUPABASE_URL is required. Please check your .env file.');
+}
+
+if (!supabaseAnonKey) {
+  throw new Error('VITE_SUPABASE_ANON_KEY is required. Please check your .env file.');
+}
+
+export const supa = createClient(supabaseUrl, supabaseAnonKey);

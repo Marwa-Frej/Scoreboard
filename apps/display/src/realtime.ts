@@ -5,6 +5,15 @@ export function channelKey(org: string, matchId: string, token: string){ return 
 export function createSupa(){
   const url = import.meta.env.VITE_SUPABASE_URL as string;
   const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+  
+  if (!url || url === 'https://your-project-ref.supabase.co') {
+    throw new Error('VITE_SUPABASE_URL is not configured. Please set up your Supabase project URL in the .env file.');
+  }
+  
+  if (!anon || anon === 'your-anon-key') {
+    throw new Error('VITE_SUPABASE_ANON_KEY is not configured. Please set up your Supabase anon key in the .env file.');
+  }
+  
   return createClient(url, anon, { auth: { persistSession: false } });
 }
 export function connectDisplay(org: string, matchId: string, token: string, onState: (state: MatchState, info?: any)=>void){

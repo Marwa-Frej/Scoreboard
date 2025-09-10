@@ -54,10 +54,12 @@ function App(){
   const [chan, setChan] = useState<any>(null);
   const [createMsg, setCreateMsg] = useState<string>('');
 
-  useEffect(()=>{ if (!user) return; (async()=>{
+  useEffect(()=>{ 
+    if (!user) return; 
+    (async()=>{
       const { data: orgs } = await supa.from('org_members_with_org').select('*').eq('user_id', user.id);
       setOrgs(orgs||[]);
-      if (orgs && orgs.length > 0 && !org) {
+      if (orgs && orgs.length > 0) {
         const userOrg = orgs[0]; // Prendre la première organisation de l'utilisateur
         setOrg({ 
           id: userOrg.org_id, 
@@ -65,7 +67,8 @@ function App(){
           name: userOrg.org_name || userOrg.name 
         });
       }
-  })(); }, [user, org]);
+    })(); 
+  }, [user]); // Retirer 'org' des dépendances pour éviter la boucle
 
   useEffect(()=>{ 
     if (!org?.id) return; 
@@ -73,7 +76,7 @@ function App(){
       const { data } = await supa.from('matches').select('*').eq('org_id', org.id).order('scheduled_at'); 
       setMatches((data as any)||[]); 
     })(); 
-  }, [org?.id]);
+  }, [org]);
 
   useEffect(()=>{ 
     if (!state?.matchId) return; 
@@ -129,20 +132,18 @@ function App(){
   function openMatch(m: MatchInfo){
     setCurrent(m);
     const key = `${m.org_id}:${m.id}`;
-    const s = initMatchState(key, m.sport);
-    setState(s);
+    const newState = initMatchState(key, m.sport);
+    setState(newState);
     if (chan) chan.close();
     const c = createOperatorChannel(
       m.org_slug || 'org', 
       m.id, 
       m.display_token, 
       () => { 
-        const currentState = s;
-        if (currentState) c.publish(currentState, m); 
+        if (newState) c.publish(newState, m); 
       }, 
       () => { 
-        const currentState = s;
-        if (currentState) c.publish(currentState, m); 
+        if (newState) c.publish(newState, m); 
       }
     );
     setChan(c);

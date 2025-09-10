@@ -84,17 +84,37 @@ function App(){
       return;
     }
     setCreateMsg('Création en cours...');
-    const display_token = Math.random().toString(36).substring(2, 15);
-    const { data, error } = await supa.from('matches').insert({ org_id: org.id, name: form.name, sport: form.sport, home_name: form.home_name, away_name: form.away_name, scheduled_at: scheduleISO(), status: 'scheduled', public_display: true, display_token }).select('*').single();
-    if (error) { 
-      setCreateMsg(`Erreur: ${error.message}`);
+    
+    try {
+      const display_token = Math.random().toString(36).substring(2, 15);
+      const { data, error } = await supa.from('matches').insert({ 
+        org_id: org.id, 
+        name: form.name, 
+        sport: form.sport, 
+        home_name: form.home_name, 
+        away_name: form.away_name, 
+        scheduled_at: scheduleISO(), 
+        status: 'scheduled', 
+        public_display: true, 
+        display_token 
+      }).select('*').single();
+      
+      if (error) { 
+        console.error('Database error:', error);
+        setCreateMsg(`Erreur: ${error.message}`);
+        setTimeout(() => setCreateMsg(''), 5000);
+        return; 
+      }
+      
+      setMatches(prev => [...prev, data as any]);
+      setCreateMsg('Match créé avec succès !');
+      setTimeout(() => setCreateMsg(''), 3000);
+      setForm({ name:'Match', sport:'basic' as Sport, home_name:'HOME', away_name:'AWAY', date:'', time:'' });
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setCreateMsg(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
       setTimeout(() => setCreateMsg(''), 5000);
-      return; 
     }
-    setMatches(prev => [...prev, data as any]);
-    setCreateMsg('Match créé avec succès !');
-    setTimeout(() => setCreateMsg(''), 3000);
-    setForm({ name:'Match', sport:'basic' as Sport, home_name:'HOME', away_name:'AWAY', date:'', time:'' });
   }
   function openMatch(m: MatchInfo){
     setCurrent(m);
@@ -102,7 +122,10 @@ function App(){
     const s = initMatchState(key, m.sport);
     setState(s);
     if (chan) chan.close();
-    const c = createOperatorChannel(m.org_slug || 'org', m.id, m.display_token, ()=>{ if (state) c.publish(state, m); }, ()=>{ if (state) c.publish(state, m); });
+    const c = createOperatorChannel(m.org_slug || 'org', m.id, m.display_token, 
+      () => { if (s) c.publish(s, m); }, 
+      () => { if (s) c.publish(s, m); }
+    );
     setChan(c);
     const u = new URL('http://localhost:5174/'); u.searchParams.set('org', m.org_slug||'org'); u.searchParams.set('match', m.id); u.searchParams.set('token', m.display_token); u.searchParams.set('ui','1'); setDisplayUrl(u.toString());
   }

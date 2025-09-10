@@ -10,8 +10,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "node scripts/dev.mjs", 
-    "dev:home": "pnpm --filter @app/home dev",
+    "dev": "node scripts/dev.mjs",
     "dev:operator": "pnpm --filter @app/operator dev",
     "dev:display": "pnpm --filter @app/display dev"
   },

@@ -130,6 +130,42 @@ function App(){
       setTimeout(() => setCreateMsg(''), 5000);
     }
   }
+  
+  async function deleteMatch(matchId: string) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) {
+      return;
+    }
+    
+    try {
+      const { error } = await supa.from('matches').delete().eq('id', matchId);
+      
+      if (error) {
+        console.error('Delete error:', error);
+        alert(`Erreur lors de la suppression: ${error.message}`);
+        return;
+      }
+      
+      // Mettre à jour la liste locale
+      setMatches(prev => prev.filter(m => m.id !== matchId));
+      
+      // Si le match supprimé était sélectionné, le désélectionner
+      if (current?.id === matchId) {
+        setCurrent(null);
+        setState(null);
+        setDisplayUrl('');
+        if (chan) {
+          chan.close();
+          setChan(null);
+        }
+        setIsSidebarCollapsed(false);
+      }
+      
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
+    }
+  }
+  
   function openMatch(m: MatchInfo){
     setCurrent(m);
     setIsSidebarCollapsed(true); // Rétracter la sidebar
@@ -193,7 +229,26 @@ function App(){
             {createMsg && <div className="small" style={{color: createMsg.includes('Erreur') ? '#ff6b6b' : '#4ade80'}}>{createMsg}</div>}
 
             <div className="sep" /><h2 className="h1">Matches</h2>
-            <div className="list">{matches.map(m => (<div key={m.id} className="item"><div><div>{m.name} <span className="small">({m.sport})</span></div><div className="small">{new Date(m.scheduled_at).toLocaleString()} • <span className="badge">{m.status}</span></div></div><div className="row"><button onClick={()=>openMatch(m)}>Sélectionner</button></div></div>))}</div>
+            <div className="list">{matches.map(m => (
+              <div key={m.id} className="item">
+                <div>
+                  <div>{m.name} <span className="small">({m.sport})</span></div>
+                  <div className="small">{new Date(m.scheduled_at).toLocaleString()} • <span className="badge">{m.status}</span></div>
+                </div>
+                <div className="row">
+                  <button onClick={()=>openMatch(m)}>Sélectionner</button>
+                  {m.status === 'scheduled' && (
+                    <button 
+                      onClick={()=>deleteMatch(m.id)} 
+                      className="danger"
+                      style={{fontSize: '12px', padding: '6px 8px'}}
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}</div>
 
             {displayUrl && <div className="sep"/ >}
             {displayUrl && <div className="small">Lien Display : <a href={displayUrl} target="_blank">{displayUrl}</a></div>}

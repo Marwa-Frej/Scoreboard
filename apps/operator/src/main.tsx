@@ -57,7 +57,14 @@ function App(){
   useEffect(()=>{ if (!user) return; (async()=>{
       const { data: orgs } = await supa.from('org_members_with_org').select('*').eq('user_id', user.id);
       setOrgs(orgs||[]);
-      if (orgs && orgs.length) setOrg({ id: orgs[0].org_id, slug: orgs[0].org_slug, name: orgs[0].org_name });
+      if (orgs && orgs.length > 0) {
+        const userOrg = orgs[0]; // Prendre la première organisation de l'utilisateur
+        setOrg({ 
+          id: userOrg.org_id, 
+          slug: userOrg.org_slug, 
+          name: userOrg.org_name || userOrg.name 
+        });
+      }
   })(); }, [user]);
 
   useEffect(()=>{ if (!org) return; (async()=>{ const { data } = await supa.from('matches').select('*').eq('org_id', org.id).order('scheduled_at'); setMatches((data as any)||[]); })(); }, [org?.id]);

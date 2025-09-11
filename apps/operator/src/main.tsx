@@ -35,6 +35,7 @@ function Login(){
       <div className="row"><button onClick={submit}>{mode==='signin'?'Se connecter':'Créer un compte'}</button><button onClick={()=>setMode(mode==='signin'?'signup':'signin')}>{mode==='signin'?'Créer un compte':'J’ai déjà un compte'}</button></div>
       {msg && <div className="small">{msg}</div>}
     </div>
+  }
   </div>;
 }
 

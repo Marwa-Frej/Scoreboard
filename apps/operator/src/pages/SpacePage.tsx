@@ -290,6 +290,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
             <MatchRow 
               key={m.id} 
               match={m} 
+             index={index}
               onSelect={() => onMatchSelect(m)}
               onEdit={() => openEditModal(m)}
               onDelete={() => deleteMatch(m.id)}
@@ -312,6 +313,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                 <MatchRow 
                   key={m.id} 
                   match={m} 
+                 index={index}
                   onSelect={() => onMatchSelect(m)}
                   archived={true}
                 />
@@ -484,13 +486,14 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
 // Composant pour afficher une ligne de match
 function MatchRow({ match, onSelect, onEdit, onDelete, archived = false }: {
   match: MatchInfo;
+ index: number;
   onSelect: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   archived?: boolean;
 }) {
   return (
-    <div className={`match-row ${archived ? 'archived' : ''}`}>
+    <div className={`match-row ${archived ? 'archived' : ''} ${index % 2 === 1 ? 'alternate' : ''}`}>
       <div className="match-details">
         <div className="match-name">{match.name}</div>
         <div className="match-teams">

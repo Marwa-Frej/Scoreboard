@@ -5,6 +5,7 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [react()],
   server: { port: 5174 },
+  envDir: resolve(__dirname, '../../'),
   resolve: {
     alias: {
       '@pkg/logic': resolve(__dirname, '../../packages/logic/src'),

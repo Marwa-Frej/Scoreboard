@@ -7,6 +7,7 @@ const SPORTS: Sport[] = ['basic','football','handball','basket','hockey_ice','ho
 interface SpacePageProps {
   user: any;
   org: { id: string, slug: string, name: string } | null;
+  matches: MatchInfo[];
   onMatchSelect: (match: MatchInfo) => void;
   onMatchesUpdate: (matches: MatchInfo[]) => void;
 }
@@ -23,7 +24,7 @@ interface MatchFormData {
 }
 
 export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }: SpacePageProps) {
-export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }: SpacePageProps) {
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [form, setForm] = useState<MatchFormData>({ 

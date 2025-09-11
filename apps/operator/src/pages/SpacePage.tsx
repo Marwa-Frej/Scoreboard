@@ -286,7 +286,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
         
         <h2 className="h1">Matchs à venir ({upcomingMatches.length})</h2>
         <div className="matches-list">
-          {upcomingMatches.map(m => (
+          {upcomingMatches.map((m, index) => (
             <MatchRow 
               key={m.id} 
               match={m} 
@@ -309,7 +309,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
             <div className="sep" />
             <h2 className="h1">Matchs archivés ({archivedMatches.length})</h2>
             <div className="matches-list archived">
-              {archivedMatches.map(m => (
+              {archivedMatches.map((m, index) => (
                 <MatchRow 
                   key={m.id} 
                   match={m} 

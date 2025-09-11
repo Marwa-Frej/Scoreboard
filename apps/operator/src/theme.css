@@ -160,41 +160,45 @@ iframe{ width:100%; height:100%; border:0; background:black } .sep{ height:8px }
   gap: 16px;
 }
 
-.matches-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+.matches-list {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
   margin-top: 16px;
 }
 
-.matches-grid.archived {
+.matches-list.archived {
   opacity: 0.7;
 }
 
-.match-card {
-  background: #0a0d10;
+.match-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--panel);
   border: 1px solid #1b1c1f;
   border-radius: 12px;
   padding: 16px;
   transition: all 0.3s ease;
 }
 
-.match-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+.match-row:hover {
   border-color: #2a2f36;
+  background: #0f1114;
 }
 
-.match-card.archived {
+.match-row.archived {
   background: #0f0f0f;
   border-color: #1a1a1a;
 }
 
-.match-info {
-  margin-bottom: 12px;
+.match-details {
+  flex: 1;
+  min-width: 0;
 }
 
-.match-title {
+.match-name {
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 4px;
@@ -204,68 +208,38 @@ iframe{ width:100%; height:100%; border:0; background:black } .sep{ height:8px }
 .match-teams {
   font-size: 14px;
   color: #9aa0a6;
-  margin-bottom: 8px;
 }
 
-.match-meta {
+.match-datetime {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.sport-badge {
-  background: #2563eb;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-badge {
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-badge.scheduled {
-  background: #f59e0b;
-  color: white;
-}
-
-.status-badge.live {
-  background: #16a34a;
-  color: white;
-}
-
-.status-badge.finished,
-.status-badge.archived {
-  background: #6b7280;
-  color: white;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 120px;
 }
 
 .match-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.match-time {
   font-size: 12px;
-  color: #6b7280;
+  color: #9aa0a6;
 }
 
 .match-actions {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-shrink: 0;
 }
 
-.empty-state {
-  grid-column: 1 / -1;
+.empty-list {
   text-align: center;
   padding: 40px 20px;
   color: #6b7280;
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
 }
 
 /* Styles pour la page Match */
@@ -361,8 +335,15 @@ iframe{ width:100%; height:100%; border:0; background:black } .sep{ height:8px }
     padding: 16px;
   }
   
-  .matches-grid {
-    grid-template-columns: 1fr;
+  .match-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .match-datetime {
+    align-items: flex-start;
+    min-width: auto;
   }
   
   .match-header {
@@ -376,11 +357,11 @@ iframe{ width:100%; height:100%; border:0; background:black } .sep{ height:8px }
   }
   
   .match-actions {
-    flex-direction: column;
     width: 100%;
+    justify-content: flex-start;
   }
   
   .match-actions button {
-    width: 100%;
+    flex: 1;
   }
 }

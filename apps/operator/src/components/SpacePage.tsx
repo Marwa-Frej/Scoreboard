@@ -210,51 +210,35 @@ export function SpacePage({ user, org, orgs, matches, onMatchSelect, onMatchesUp
         <div className="sep" />
         
         <h2 className="h1">Matchs à venir ({upcomingMatches.length})</h2>
-        <div className="matches-grid">
+        <div className="matches-list">
           {upcomingMatches.map(m => (
-            <div key={m.id} className="match-card">
-              <div className="match-info">
-                <div className="match-title">{m.name}</div>
+            <div key={m.id} className="match-row">
+              <div className="match-details">
+                <div className="match-name">{m.name}</div>
                 <div className="match-teams">{m.home_name} vs {m.away_name}</div>
-                <div className="match-meta">
-                  <span className="sport-badge">{m.sport}</span>
-                  <span className={`status-badge ${m.status}`}>{m.status}</span>
-                </div>
-                <div className="match-date">
-                  {new Date(m.scheduled_at).toLocaleString()}
-                </div>
+              </div>
+              <div className="match-datetime">
+                <div className="match-date">{new Date(m.scheduled_at).toLocaleDateString('fr-FR')}</div>
+                <div className="match-time">{new Date(m.scheduled_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
               </div>
               <div className="match-actions">
                 <button 
                   onClick={() => onMatchSelect(m)} 
                   className="primary"
                 >
-                  Contrôler
+                  Sélectionner
                 </button>
-                {m.status === 'scheduled' && (
-                  <button 
-                    onClick={() => deleteMatch(m.id)} 
-                    className="danger"
-                    title="Supprimer le match"
-                  >
-                    🗑️
-                  </button>
-                )}
-                {m.status === 'live' && (
-                  <button 
-                    onClick={() => archiveMatch(m.id)} 
-                    style={{ background: '#f59e0b', borderColor: '#f59e0b' }}
-                    title="Archiver le match"
-                  >
-                    📁
-                  </button>
-                )}
+                <button 
+                  onClick={() => deleteMatch(m.id)} 
+                  className="danger"
+                >
+                  Supprimer
+                </button>
               </div>
             </div>
           ))}
           {upcomingMatches.length === 0 && (
-            <div className="empty-state">
-              <div className="empty-icon">📅</div>
+            <div className="empty-list">
               <div>Aucun match à venir</div>
               <div className="small">Créez votre premier match ci-dessus</div>
             </div>
@@ -265,26 +249,23 @@ export function SpacePage({ user, org, orgs, matches, onMatchSelect, onMatchesUp
           <>
             <div className="sep" />
             <h2 className="h1">Matchs archivés ({archivedMatches.length})</h2>
-            <div className="matches-grid archived">
+            <div className="matches-list archived">
               {archivedMatches.map(m => (
-                <div key={m.id} className="match-card archived">
-                  <div className="match-info">
-                    <div className="match-title">{m.name}</div>
+                <div key={m.id} className="match-row archived">
+                  <div className="match-details">
+                    <div className="match-name">{m.name}</div>
                     <div className="match-teams">{m.home_name} vs {m.away_name}</div>
-                    <div className="match-meta">
-                      <span className="sport-badge">{m.sport}</span>
-                      <span className={`status-badge ${m.status}`}>{m.status}</span>
-                    </div>
-                    <div className="match-date">
-                      {new Date(m.scheduled_at).toLocaleString()}
-                    </div>
+                  </div>
+                  <div className="match-datetime">
+                    <div className="match-date">{new Date(m.scheduled_at).toLocaleDateString('fr-FR')}</div>
+                    <div className="match-time">{new Date(m.scheduled_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
                   </div>
                   <div className="match-actions">
                     <button 
                       onClick={() => onMatchSelect(m)} 
                       style={{ background: '#6b7280', borderColor: '#6b7280' }}
                     >
-                      Voir
+                      Sélectionner
                     </button>
                   </div>
                 </div>

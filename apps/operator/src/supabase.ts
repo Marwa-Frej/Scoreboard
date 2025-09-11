@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+console.log('Supabase config:', { 
+  url: supabaseUrl ? 'Configuré' : 'MANQUANT', 
+  key: supabaseAnonKey ? 'Configuré' : 'MANQUANT' 
+});
+
 if (!supabaseUrl) {
   throw new Error('VITE_SUPABASE_URL is required. Please check your .env file.');
 }

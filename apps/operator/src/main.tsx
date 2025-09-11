@@ -11,8 +11,11 @@ function useAuth() {
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    supa.auth.getUser().then(r=>{
-      setUser(r.data.user||null);
+    supa.auth.getUser().then(r => {
+      setUser(r.data.user || null);
+      setLoading(false);
+    }).catch(err => {
+      console.error('Auth error:', err);
       setLoading(false);
     });
     
@@ -51,7 +54,7 @@ function Login(){
     setSubmitting(false);
   }
   
-  return <div className="preview" style={{placeItems:'center'}}>
+  return <div className="space-page" style={{display:'grid', placeItems:'center', minHeight:'100vh'}}>
     <div className="card" style={{width:360}}>
       <h2 className="h1">Connexion Opérateur</h2>
       <div className="col">
@@ -107,29 +110,69 @@ function App(){
   const [matches, setMatches] = useState<MatchInfo[]>([]);
   const [currentPage, setCurrentPage] = useState<'space' | 'match'>('space');
   const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
+  const [error, setError] = useState<string>('');
 
-  useEffect(()=>{ 
+  useEffect(() => { 
     if (!user) return;
-    (async () => {
-      const { data: orgs } = await supa.from('org_members_with_org').select('*').eq('user_id', user.id);
-      setOrgs(orgs || []);
-      if (orgs && orgs.length > 0) {
-        const userOrg = orgs[0];
-        setOrg({ 
-          id: userOrg.org_id, 
-          slug: userOrg.org_slug, 
-          name: userOrg.org_name || userOrg.name 
-        });
+    
+    async function loadUserData() {
+      try {
+        const { data: orgs, error: orgError } = await supa
+          .from('org_members_with_org')
+          .select('*')
+          .eq('user_id', user.id);
+        
+        if (orgError) {
+          console.error('Error loading orgs:', orgError);
+          setError(`Erreur de chargement des organisations: ${orgError.message}`);
+          return;
+        }
+        
+        setOrgs(orgs || []);
+        if (orgs && orgs.length > 0) {
+          const userOrg = orgs[0];
+          setOrg({ 
+            id: userOrg.org_id, 
+            slug: userOrg.org_slug, 
+            name: userOrg.org_name || userOrg.name 
+          });
+        } else {
+          setError('Aucune organisation trouvée pour cet utilisateur');
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        setError(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
       }
-    })();
+    }
+    
+    loadUserData();
   }, [user]);
 
-  useEffect(()=>{ 
-    if (!org?.id) return; 
-    (async()=>{ 
-      const { data } = await supa.from('matches').select('*').eq('org_id', org.id).order('scheduled_at'); 
-      setMatches((data as any)||[]); 
-    })(); 
+  useEffect(() => { 
+    if (!org?.id) return;
+    
+    async function loadMatches() {
+      try {
+        const { data, error } = await supa
+          .from('matches')
+          .select('*')
+          .eq('org_id', org.id)
+          .order('scheduled_at');
+        
+        if (error) {
+          console.error('Error loading matches:', error);
+          setError(`Erreur de chargement des matchs: ${error.message}`);
+          return;
+        }
+        
+        setMatches((data as any) || []);
+      } catch (err) {
+        console.error('Unexpected error loading matches:', err);
+        setError(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
+      }
+    }
+    
+    loadMatches();
   }, [org]);
 
   function handleMatchSelect(match: MatchInfo) {
@@ -149,9 +192,24 @@ function App(){
   // Afficher un loader pendant la vérification de l'authentification
   if (loading) {
     return (
-      <div className="preview" style={{placeItems:'center'}}>
+      <div className="space-page" style={{display:'grid', placeItems:'center', minHeight:'100vh'}}>
         <div className="card" style={{width:360, textAlign:'center'}}>
           <div className="loading">Chargement...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Afficher les erreurs
+  if (error) {
+    return (
+      <div className="space-page" style={{display:'grid', placeItems:'center', minHeight:'100vh'}}>
+        <div className="card" style={{width:400, textAlign:'center'}}>
+          <h2 className="h1" style={{color:'#ff6b6b'}}>Erreur</h2>
+          <div style={{color:'#ff6b6b', marginBottom:'16px'}}>{error}</div>
+          <button onClick={() => window.location.reload()} className="primary">
+            Recharger la page
+          </button>
         </div>
       </div>
     );

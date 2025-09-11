@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import type { MatchInfo, Sport } from '@pkg/types';
 import { supa } from '../supabase';
 
@@ -23,57 +23,65 @@ interface MatchFormData {
   time: string;
 }
 
+const initialFormData: MatchFormData = {
+  name: 'Match',
+  sport: 'basic',
+  home_name: 'HOME',
+  away_name: 'AWAY',
+  home_logo: '',
+  away_logo: '',
+  date: '',
+  time: ''
+};
+
 export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }: SpacePageProps) {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
-  const [form, setForm] = useState<MatchFormData>({ 
-    name: 'Match', 
-    sport: 'basic' as Sport, 
-    home_name: 'HOME', 
-    away_name: 'AWAY', 
-    home_logo: '',
-    away_logo: '',
-    date: '', 
-    time: '' 
+  // États stables - pas de réinitialisation intempestive
+  const [modalState, setModalState] = useState<{
+    type: 'none' | 'create' | 'edit';
+    editingId: string | null;
+  }>({ type: 'none', editingId: null });
+  
+  const [formData, setFormData] = useState<MatchFormData>(initialFormData);
+  const [operationState, setOperationState] = useState<{
+    isSubmitting: boolean;
+    message: string;
+    messageType: 'success' | 'error' | 'info';
+  }>({
+    isSubmitting: false,
+    message: '',
+    messageType: 'info'
   });
-  const [createMsg, setCreateMsg] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Séparer les matchs en cours/à venir et archivés
-  const upcomingMatches = matches.filter(m => m.status === 'scheduled' || m.status === 'live');
-  const archivedMatches = matches.filter(m => m.status === 'finished' || m.status === 'archived');
+  // Mémorisation des matchs pour éviter les re-calculs
+  const { upcomingMatches, archivedMatches } = useMemo(() => {
+    const upcoming = matches.filter(m => m.status === 'scheduled' || m.status === 'live');
+    const archived = matches.filter(m => m.status === 'finished' || m.status === 'archived');
+    return { upcomingMatches: upcoming, archivedMatches: archived };
+  }, [matches]);
 
-  function scheduleISO() { 
-    if (!form.date) return new Date().toISOString(); 
-    const hhmm = (form.time || '00:00').split(':'); 
-    const d = new Date(`${form.date}T${hhmm[0].padStart(2,'0')}:${(hhmm[1] || '00').padStart(2,'0')}:00`); 
-    return d.toISOString(); 
-  }
+  // Fonctions stables avec useCallback
+  const setMessage = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setOperationState(prev => ({ ...prev, message, messageType: type }));
+    if (message) {
+      setTimeout(() => {
+        setOperationState(prev => ({ ...prev, message: '' }));
+      }, type === 'success' ? 2000 : 5000);
+    }
+  }, []);
 
-  function resetForm() {
-    setForm({
-      name: 'Match',
-      sport: 'basic' as Sport,
-      home_name: 'HOME',
-      away_name: 'AWAY',
-      home_logo: '',
-      away_logo: '',
-      date: '',
-      time: ''
-    });
-    setCreateMsg('');
-  }
+  const resetForm = useCallback(() => {
+    setFormData(initialFormData);
+    setOperationState(prev => ({ ...prev, message: '' }));
+  }, []);
 
-  function openCreateModal() {
+  const openCreateModal = useCallback(() => {
     resetForm();
-    setShowCreateModal(true);
-  }
+    setModalState({ type: 'create', editingId: null });
+  }, [resetForm]);
 
-  function openEditModal(match: MatchInfo) {
-    setEditingMatchId(match.id);
+  const openEditModal = useCallback((match: MatchInfo) => {
     const matchDate = new Date(match.scheduled_at);
-    setForm({
+    setFormData({
       name: match.name,
       sport: match.sport,
       home_name: match.home_name,
@@ -83,169 +91,169 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
       date: matchDate.toISOString().split('T')[0],
       time: matchDate.toTimeString().substring(0, 5)
     });
-    setShowEditModal(true);
-  }
+    setModalState({ type: 'edit', editingId: match.id });
+    setOperationState(prev => ({ ...prev, message: '' }));
+  }, []);
 
-  function closeModals() {
-    setShowCreateModal(false);
-    setShowEditModal(false);
-    setEditingMatchId(null);
-    setIsSubmitting(false);
+  const closeModal = useCallback(() => {
+    if (operationState.isSubmitting) return; // Empêcher la fermeture pendant une opération
+    setModalState({ type: 'none', editingId: null });
     resetForm();
-  }
+  }, [operationState.isSubmitting, resetForm]);
 
-  function handleImageUpload(file: File, team: 'home' | 'away') {
+  const updateFormField = useCallback((field: keyof MatchFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleImageUpload = useCallback((file: File, team: 'home' | 'away') => {
     if (!file) return;
     
-    // Vérifier le type de fichier
     if (!file.type.startsWith('image/')) {
-      setCreateMsg('Erreur: Veuillez sélectionner un fichier image');
-      setTimeout(() => setCreateMsg(''), 3000);
+      setMessage('Veuillez sélectionner un fichier image', 'error');
       return;
     }
     
-    // Vérifier la taille (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      setCreateMsg('Erreur: L\'image doit faire moins de 2MB');
-      setTimeout(() => setCreateMsg(''), 3000);
+      setMessage('L\'image doit faire moins de 2MB', 'error');
       return;
     }
     
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      setForm(prev => ({
-        ...prev,
-        [team === 'home' ? 'home_logo' : 'away_logo']: result
-      }));
+      updateFormField(team === 'home' ? 'home_logo' : 'away_logo', result);
     };
     reader.readAsDataURL(file);
-  }
+  }, [updateFormField, setMessage]);
 
-  function removeImage(team: 'home' | 'away') {
-    setForm(prev => ({
-      ...prev,
-      [team === 'home' ? 'home_logo' : 'away_logo']: ''
-    }));
-  }
+  const removeImage = useCallback((team: 'home' | 'away') => {
+    updateFormField(team === 'home' ? 'home_logo' : 'away_logo', '');
+  }, [updateFormField]);
 
-  async function handleSubmit() {
-    if (isSubmitting) return; // Éviter les doubles soumissions
-    
-    setIsSubmitting(true);
-    
-    if (editingMatchId) {
-      await saveEditMatch();
-    } else {
-      await createMatch();
+  const scheduleISO = useCallback(() => {
+    if (!formData.date) return new Date().toISOString();
+    const hhmm = (formData.time || '00:00').split(':');
+    const d = new Date(`${formData.date}T${hhmm[0].padStart(2,'0')}:${(hhmm[1] || '00').padStart(2,'0')}:00`);
+    return d.toISOString();
+  }, [formData.date, formData.time]);
+
+  const createMatch = useCallback(async () => {
+    if (!org) {
+      setMessage('Veuillez sélectionner un espace d\'abord', 'error');
+      return;
     }
-    
-    setIsSubmitting(false);
-  }
+    if (!formData.name.trim()) {
+      setMessage('Le nom du match est requis', 'error');
+      return;
+    }
 
-  async function saveEditMatch() {
-    if (!editingMatchId) return;
-    
+    setOperationState(prev => ({ ...prev, isSubmitting: true }));
+    setMessage('Création en cours...', 'info');
+
+    try {
+      const display_token = Math.random().toString(36).substring(2, 15);
+      const { data, error } = await supa.from('matches').insert({
+        org_id: org.id,
+        name: formData.name,
+        sport: formData.sport,
+        home_name: formData.home_name,
+        away_name: formData.away_name,
+        home_logo: formData.home_logo || null,
+        away_logo: formData.away_logo || null,
+        scheduled_at: scheduleISO(),
+        status: 'scheduled',
+        public_display: true,
+        display_token
+      }).select('*').single();
+
+      if (error) {
+        setMessage(`Erreur: ${error.message}`, 'error');
+        return;
+      }
+
+      const updatedMatches = [...matches, data as any];
+      onMatchesUpdate(updatedMatches);
+      setMessage('Match créé avec succès !', 'success');
+      
+      // Fermer le modal après succès
+      setTimeout(() => {
+        setModalState({ type: 'none', editingId: null });
+        resetForm();
+      }, 1500);
+
+    } catch (err) {
+      setMessage(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`, 'error');
+    } finally {
+      setOperationState(prev => ({ ...prev, isSubmitting: false }));
+    }
+  }, [org, formData, scheduleISO, matches, onMatchesUpdate, setMessage, resetForm]);
+
+  const editMatch = useCallback(async () => {
+    if (!modalState.editingId) return;
+
+    setOperationState(prev => ({ ...prev, isSubmitting: true }));
+    setMessage('Modification en cours...', 'info');
+
     try {
       const { data, error } = await supa
         .from('matches')
         .update({
-          name: form.name,
-          sport: form.sport,
-          home_name: form.home_name,
-          away_name: form.away_name,
-          home_logo: form.home_logo || null,
-          away_logo: form.away_logo || null,
+          name: formData.name,
+          sport: formData.sport,
+          home_name: formData.home_name,
+          away_name: formData.away_name,
+          home_logo: formData.home_logo || null,
+          away_logo: formData.away_logo || null,
           scheduled_at: scheduleISO(),
           updated_at: new Date().toISOString()
         })
-        .eq('id', editingMatchId)
+        .eq('id', modalState.editingId)
         .select('*')
         .single();
-      
+
       if (error) {
-        console.error('Update error:', error);
-        setCreateMsg(`Erreur lors de la modification: ${error.message}`);
-        setTimeout(() => setCreateMsg(''), 5000);
+        setMessage(`Erreur lors de la modification: ${error.message}`, 'error');
         return;
       }
-      
+
       const updatedMatches = matches.map(m => 
-        m.id === editingMatchId ? data as any : m
+        m.id === modalState.editingId ? data as any : m
       );
       onMatchesUpdate(updatedMatches);
-      setCreateMsg('Match modifié avec succès !');
-      setTimeout(() => {
-        closeModals();
-      }, 1500);
+      setMessage('Match modifié avec succès !', 'success');
       
+      // Fermer le modal après succès
+      setTimeout(() => {
+        setModalState({ type: 'none', editingId: null });
+        resetForm();
+      }, 1500);
+
     } catch (err) {
-      console.error('Unexpected error:', err);
-      setCreateMsg(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
-      setTimeout(() => setCreateMsg(''), 5000);
+      setMessage(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`, 'error');
+    } finally {
+      setOperationState(prev => ({ ...prev, isSubmitting: false }));
     }
-  }
-  
-  async function createMatch() {
-    if (!org) {
-      setCreateMsg('Erreur: Veuillez sélectionner un espace d\'abord');
-      setTimeout(() => setCreateMsg(''), 5000);
-      return;
-    }
-    if (!form.name.trim()) {
-      setCreateMsg('Erreur: Le nom du match est requis');
-      setTimeout(() => setCreateMsg(''), 5000);
-      return;
-    }
-    setCreateMsg('Création en cours...');
+  }, [modalState.editingId, formData, scheduleISO, matches, onMatchesUpdate, setMessage, resetForm]);
+
+  const handleSubmit = useCallback(() => {
+    if (operationState.isSubmitting) return;
     
-    try {
-      const display_token = Math.random().toString(36).substring(2, 15);
-      const { data, error } = await supa.from('matches').insert({ 
-        org_id: org.id, 
-        name: form.name, 
-        sport: form.sport, 
-        home_name: form.home_name, 
-        away_name: form.away_name, 
-        home_logo: form.home_logo || null,
-        away_logo: form.away_logo || null,
-        scheduled_at: scheduleISO(), 
-        status: 'scheduled', 
-        public_display: true, 
-        display_token 
-      }).select('*').single();
-      
-      if (error) { 
-        console.error('Database error:', error);
-        setCreateMsg(`Erreur: ${error.message}`);
-        setTimeout(() => setCreateMsg(''), 5000);
-        return; 
-      }
-      
-      const updatedMatches = [...matches, data as any];
-      onMatchesUpdate(updatedMatches);
-      setCreateMsg('Match créé avec succès !');
-      setTimeout(() => {
-        closeModals();
-      }, 1500);
-      
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setCreateMsg(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
-      setTimeout(() => setCreateMsg(''), 5000);
+    if (modalState.type === 'create') {
+      createMatch();
+    } else if (modalState.type === 'edit') {
+      editMatch();
     }
-  }
-  
-  async function deleteMatch(matchId: string) {
+  }, [operationState.isSubmitting, modalState.type, createMatch, editMatch]);
+
+  const deleteMatch = useCallback(async (matchId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) {
       return;
     }
-    
+
     try {
       const { error } = await supa.from('matches').delete().eq('id', matchId);
       
       if (error) {
-        console.error('Delete error:', error);
         alert(`Erreur lors de la suppression: ${error.message}`);
         return;
       }
@@ -254,11 +262,15 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
       onMatchesUpdate(updatedMatches);
       
     } catch (err) {
-      console.error('Unexpected error:', err);
       alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
     }
-  }
+  }, [matches, onMatchesUpdate]);
 
+  const handleSignOut = useCallback(() => {
+    supa.auth.signOut();
+  }, []);
+
+  // Rendu stable
   return (
     <div className="space-page">
       <div className="card">
@@ -272,15 +284,16 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                   onClick={openCreateModal}
                   className="add-match-btn"
                   title="Ajouter un nouveau match"
-                  disabled={isSubmitting}
+                  disabled={operationState.isSubmitting}
                 >
                   ➕ Ajouter un match
                 </button>
               )}
             </div>
             <button 
-              onClick={() => supa.auth.signOut()} 
+              onClick={handleSignOut}
               style={{ background: '#dc2626', borderColor: '#dc2626' }}
+              disabled={operationState.isSubmitting}
             >
               Déconnexion
             </button>
@@ -316,21 +329,21 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                 <button 
                   onClick={() => onMatchSelect(m)} 
                   className="primary"
-                  disabled={isSubmitting}
+                  disabled={operationState.isSubmitting}
                 >
                   Sélectionner
                 </button>
                 <button 
                   onClick={() => openEditModal(m)} 
                   style={{ background: '#f59e0b', borderColor: '#f59e0b', color: 'white' }}
-                  disabled={isSubmitting}
+                  disabled={operationState.isSubmitting}
                 >
                   ✏️ Modifier
                 </button>
                 <button 
                   onClick={() => deleteMatch(m.id)} 
                   className="danger"
-                  disabled={isSubmitting}
+                  disabled={operationState.isSubmitting}
                 >
                   🗑️ Supprimer
                 </button>
@@ -364,7 +377,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                     <button 
                       onClick={() => onMatchSelect(m)} 
                       style={{ background: '#6b7280', borderColor: '#6b7280' }}
-                      disabled={isSubmitting}
+                      disabled={operationState.isSubmitting}
                     >
                       Sélectionner
                     </button>
@@ -375,17 +388,17 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
           </>
         )}
 
-        {/* Modal de création/modification de match */}
-        {(showCreateModal || showEditModal) && (
-          <div className="modal-overlay" onClick={closeModals}>
+        {/* Modal de création/modification */}
+        {modalState.type !== 'none' && (
+          <div className="modal-overlay" onClick={closeModal}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>{editingMatchId ? '✏️ Modifier le match' : '➕ Nouveau match'}</h2>
+                <h2>{modalState.type === 'edit' ? '✏️ Modifier le match' : '➕ Nouveau match'}</h2>
                 <button 
                   className="modal-close"
-                  onClick={closeModals}
+                  onClick={closeModal}
                   title="Fermer"
-                  disabled={isSubmitting}
+                  disabled={operationState.isSubmitting}
                 >
                   ✕
                 </button>
@@ -398,9 +411,9 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                     <input 
                       className="input" 
                       placeholder="Ex: Finale championnat" 
-                      value={form.name} 
-                      onChange={e => setForm({ ...form, name: e.target.value })} 
-                      disabled={isSubmitting}
+                      value={formData.name} 
+                      onChange={e => updateFormField('name', e.target.value)}
+                      disabled={operationState.isSubmitting}
                     />
                   </div>
                   
@@ -408,9 +421,9 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                     <label>Sport</label>
                     <select 
                       className="input"
-                      value={form.sport} 
-                      onChange={e => setForm({ ...form, sport: e.target.value as Sport })}
-                      disabled={isSubmitting}
+                      value={formData.sport} 
+                      onChange={e => updateFormField('sport', e.target.value)}
+                      disabled={operationState.isSubmitting}
                     >
                       {SPORTS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -422,9 +435,9 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                       <input 
                         className="input" 
                         placeholder="Nom équipe A" 
-                        value={form.home_name} 
-                        onChange={e => setForm({ ...form, home_name: e.target.value })} 
-                        disabled={isSubmitting}
+                        value={formData.home_name} 
+                        onChange={e => updateFormField('home_name', e.target.value)}
+                        disabled={operationState.isSubmitting}
                       />
                       <div className="logo-upload">
                         <label className="logo-upload-label">
@@ -434,18 +447,18 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                             accept="image/*" 
                             onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'home')}
                             style={{ display: 'none' }}
-                            disabled={isSubmitting}
+                            disabled={operationState.isSubmitting}
                           />
                         </label>
-                        {form.home_logo && (
+                        {formData.home_logo && (
                           <div className="logo-preview">
-                            <img src={form.home_logo} alt="Logo équipe A" />
+                            <img src={formData.home_logo} alt="Logo équipe A" />
                             <button 
                               type="button" 
                               onClick={() => removeImage('home')}
                               className="logo-remove"
                               title="Supprimer le logo"
-                              disabled={isSubmitting}
+                              disabled={operationState.isSubmitting}
                             >
                               ✕
                             </button>
@@ -458,9 +471,9 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                       <input 
                         className="input" 
                         placeholder="Nom équipe B" 
-                        value={form.away_name} 
-                        onChange={e => setForm({ ...form, away_name: e.target.value })} 
-                        disabled={isSubmitting}
+                        value={formData.away_name} 
+                        onChange={e => updateFormField('away_name', e.target.value)}
+                        disabled={operationState.isSubmitting}
                       />
                       <div className="logo-upload">
                         <label className="logo-upload-label">
@@ -470,18 +483,18 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                             accept="image/*" 
                             onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'away')}
                             style={{ display: 'none' }}
-                            disabled={isSubmitting}
+                            disabled={operationState.isSubmitting}
                           />
                         </label>
-                        {form.away_logo && (
+                        {formData.away_logo && (
                           <div className="logo-preview">
-                            <img src={form.away_logo} alt="Logo équipe B" />
+                            <img src={formData.away_logo} alt="Logo équipe B" />
                             <button 
                               type="button" 
                               onClick={() => removeImage('away')}
                               className="logo-remove"
                               title="Supprimer le logo"
-                              disabled={isSubmitting}
+                              disabled={operationState.isSubmitting}
                             >
                               ✕
                             </button>
@@ -497,9 +510,9 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                       <input 
                         className="input" 
                         type="date" 
-                        value={form.date} 
-                        onChange={e => setForm({ ...form, date: e.target.value })} 
-                        disabled={isSubmitting}
+                        value={formData.date} 
+                        onChange={e => updateFormField('date', e.target.value)}
+                        disabled={operationState.isSubmitting}
                       />
                     </div>
                     <div className="form-field">
@@ -507,18 +520,19 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                       <input 
                         className="input" 
                         type="time" 
-                        value={form.time} 
-                        onChange={e => setForm({ ...form, time: e.target.value })} 
-                        disabled={isSubmitting}
+                        value={formData.time} 
+                        onChange={e => updateFormField('time', e.target.value)}
+                        disabled={operationState.isSubmitting}
                       />
                     </div>
                   </div>
                   
-                  {createMsg && (
+                  {operationState.message && (
                     <div className="form-message" style={{ 
-                      color: createMsg.includes('Erreur') ? '#ff6b6b' : '#4ade80' 
+                      color: operationState.messageType === 'error' ? '#ff6b6b' : 
+                            operationState.messageType === 'success' ? '#4ade80' : '#fbbf24'
                     }}>
-                      {createMsg}
+                      {operationState.message}
                     </div>
                   )}
                 </div>
@@ -526,18 +540,19 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
               
               <div className="modal-footer">
                 <button 
-                  onClick={closeModals}
+                  onClick={closeModal}
                   className="secondary"
-                  disabled={isSubmitting}
+                  disabled={operationState.isSubmitting}
                 >
                   Annuler
                 </button>
                 <button 
                   onClick={handleSubmit}
                   className="primary"
-                  disabled={!form.name.trim() || isSubmitting}
+                  disabled={!formData.name.trim() || operationState.isSubmitting}
                 >
-                  {isSubmitting ? '⏳ En cours...' : (editingMatchId ? '✅ Sauvegarder' : '✅ Créer le match')}
+                  {operationState.isSubmitting ? '⏳ En cours...' : 
+                   modalState.type === 'edit' ? '✅ Sauvegarder' : '✅ Créer le match'}
                 </button>
               </div>
             </div>

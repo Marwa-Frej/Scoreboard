@@ -16,123 +16,111 @@ function App() {
   const [currentPage, setCurrentPage] = useState<'space' | 'match'>('space');
   const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
   const [error, setError] = useState<string>('');
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  // Auth simple - une seule fois
+  // Auth - une seule initialisation
   useEffect(() => {
-    console.log('🔐 Auth - Initialisation unique');
+    if (initialized) return;
     
-    let isMounted = true;
+    console.log('🔐 Auth - Initialisation');
+    setInitialized(true);
     
-    // Récupérer l'utilisateur actuel
-    supa.auth.getUser().then(({ data: { user } }) => {
-      if (isMounted) {
+    async function initAuth() {
+      try {
+        const { data: { user } } = await supa.auth.getUser();
         console.log('👤 Auth - Utilisateur:', user?.email || 'Aucun');
         setUser(user);
+        
+        if (user) {
+          await loadUserData(user);
+        }
+      } catch (err) {
+        console.error('❌ Auth - Erreur:', err);
+        setError('Erreur d\'authentification');
+      } finally {
         setLoading(false);
       }
-    });
+    }
 
-    // Écouter les changements d'auth
+    initAuth();
+
+    // Écouter les changements d'auth une seule fois
     const { data: { subscription } } = supa.auth.onAuthStateChange((event, session) => {
-      if (isMounted) {
-        console.log('🔄 Auth - Changement:', session?.user?.email || 'Déconnecté');
-        setUser(session?.user || null);
-        setLoading(false);
+      console.log('🔄 Auth - Changement:', event, session?.user?.email || 'Déconnecté');
+      
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setOrg(null);
+        setMatches([]);
+        setCurrentPage('space');
+        setSelectedMatch(null);
+        setError('');
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        loadUserData(session.user);
       }
     });
 
     return () => {
-      isMounted = false;
       subscription.unsubscribe();
     };
-  }, []); // Pas de dépendances - une seule fois
+  }, [initialized]);
 
-  // Charger les données quand l'utilisateur est connecté
-  useEffect(() => {
-    if (!user?.id) {
-      // Reset quand pas d'utilisateur
-      setOrg(null);
-      setMatches([]);
-      setCurrentPage('space');
-      setSelectedMatch(null);
+  // Fonction stable pour charger les données utilisateur
+  async function loadUserData(user: any) {
+    try {
+      console.log('📊 Data - Chargement pour utilisateur:', user.email);
       setError('');
-      setDataLoaded(false);
-      return;
-    }
+      
+      // Charger les organisations
+      const { data: orgs, error: orgError } = await supa
+        .from('org_members_with_org')
+        .select('*')
+        .eq('user_id', user.id);
 
-    if (dataLoaded) return; // Éviter les rechargements multiples
-
-    console.log('📊 Data - Chargement pour utilisateur:', user.email);
-    
-    let isMounted = true;
-    
-    async function loadData() {
-      try {
-        setError(''); // Reset des erreurs
-        
-        // Charger les organisations
-        const { data: orgs, error: orgError } = await supa
-          .from('org_members_with_org')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (!isMounted) return;
-
-        if (orgError) {
-          console.error('❌ Erreur orgs:', orgError);
-          setError(`Erreur organisations: ${orgError.message}`);
-          return;
-        }
-
-        if (!orgs || orgs.length === 0) {
-          console.warn('⚠️ Aucune organisation');
-          setError('Aucune organisation trouvée');
-          return;
-        }
-
-        const userOrg = orgs[0];
-        const orgData = {
-          id: userOrg.org_id,
-          slug: userOrg.org_slug,
-          name: userOrg.org_name
-        };
-        
-        console.log('🏢 Organisation:', orgData.name);
-        setOrg(orgData);
-
-        // Charger les matchs
-        const { data: matchesData, error: matchError } = await supa
-          .from('matches')
-          .select('*')
-          .eq('org_id', orgData.id)
-          .order('scheduled_at');
-
-        if (!isMounted) return;
-
-        if (matchError) {
-          console.error('❌ Erreur matchs:', matchError);
-          setError(`Erreur matchs: ${matchError.message}`);
-          return;
-        }
-
-        console.log('📋 Matchs chargés:', matchesData?.length || 0);
-        setMatches(matchesData || []);
-        setDataLoaded(true);
-
-      } catch (err) {
-        if (!isMounted) return;
-        console.error('💥 Erreur inattendue:', err);
-        setError(`Erreur: ${err instanceof Error ? err.message : 'Inconnue'}`);
+      if (orgError) {
+        console.error('❌ Erreur orgs:', orgError);
+        setError(`Erreur organisations: ${orgError.message}`);
+        return;
       }
+
+      if (!orgs || orgs.length === 0) {
+        console.warn('⚠️ Aucune organisation');
+        setError('Aucune organisation trouvée');
+        return;
+      }
+
+      const userOrg = orgs[0];
+      const orgData = {
+        id: userOrg.org_id,
+        slug: userOrg.org_slug,
+        name: userOrg.org_name
+      };
+      
+      console.log('🏢 Organisation:', orgData.name);
+      setOrg(orgData);
+
+      // Charger les matchs
+      const { data: matchesData, error: matchError } = await supa
+        .from('matches')
+        .select('*')
+        .eq('org_id', orgData.id)
+        .order('scheduled_at');
+
+      if (matchError) {
+        console.error('❌ Erreur matchs:', matchError);
+        setError(`Erreur matchs: ${matchError.message}`);
+        return;
+      }
+
+      console.log('📋 Matchs chargés:', matchesData?.length || 0);
+      setMatches(matchesData || []);
+
+    } catch (err) {
+      console.error('💥 Erreur inattendue:', err);
+      setError(`Erreur: ${err instanceof Error ? err.message : 'Inconnue'}`);
     }
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user?.id, dataLoaded]); // Seulement quand l'ID utilisateur change ou si pas encore chargé
+  }
 
   // Fonctions de navigation simples
   function handleMatchSelect(match: MatchInfo) {
@@ -193,7 +181,6 @@ function App() {
   return (
     <SpacePage 
       user={user}
-      org={org}
       matches={matches}
       onMatchSelect={handleMatchSelect}
       onMatchesUpdate={handleMatchesUpdate}
@@ -288,6 +275,6 @@ if (!rootElement) {
 } else {
   console.log('✅ Main - Élément root trouvé, création de l\'app');
   const root = createRoot(rootElement);
-  root.render(<App />); // Suppression de React.StrictMode qui peut causer des doubles rendus
+  root.render(<App />);
   console.log('🚀 Main - Application React montée');
 }

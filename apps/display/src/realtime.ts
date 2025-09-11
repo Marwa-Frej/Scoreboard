@@ -21,21 +21,37 @@ export function connectDisplay(org: string, matchId: string, token: string, onSt
   const channelName = channelKey(org, matchId, token);
   console.log('Display - Connexion au canal:', channelName);
   
-  const ch = supa.channel(channelKey(org, matchId, token), { config: { broadcast: { ack: true } } });
+  const ch = supa.channel(channelName, { 
+    config: { 
+      broadcast: { ack: true },
+      presence: { key: 'display' }
+    } 
+  });
   
   ch.on('broadcast', { event: 'state' }, (p) => {
     console.log('Display - Message reçu:', p);
     const { state, info } = p.payload as any;
-    onState(state, info);
+    if (state && info) {
+      onState(state, info);
+    }
   });
   
   ch.subscribe(status => {
     console.log('Display - Statut de souscription:', status);
     if (status === 'SUBSCRIBED') {
       console.log('Display - Envoi du message hello');
-      ch.send({ type: 'broadcast', event: 'hello', payload: { want: 'state' } });
+      ch.send({ 
+        type: 'broadcast', 
+        event: 'hello', 
+        payload: { want: 'state', display: true } 
+      });
     }
   });
   
-  return { close: () => { supa.removeChannel(ch); } };
+  return { 
+    close: () => { 
+      console.log('Display - Fermeture de la connexion');
+      supa.removeChannel(ch); 
+    } 
+  };
 }

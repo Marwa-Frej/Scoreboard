@@ -44,11 +44,16 @@ function App(){
 
     async function checkForActiveMatch() {
       try {
+        console.log('Display - Recherche de match actif...');
+        
         const { data: matches } = await supa
           .from('matches')
           .select('*')
           .eq('status', 'live')
+          .order('updated_at', { ascending: false })
           .limit(1);
+
+        console.log('Display - Matchs live trouvés:', matches);
 
         if (matches && matches.length > 0) {
           const match = matches[0];
@@ -58,13 +63,17 @@ function App(){
           setAway(match.away_name);
           connectToMatch(match);
         } else {
-          // Pas de match live, chercher le dernier match sélectionné
+          console.log('Display - Aucun match live, recherche du dernier match...');
+          
+          // Pas de match live, chercher le dernier match récent
           const { data: recentMatches } = await supa
             .from('matches')
             .select('*')
-            .in('status', ['scheduled', 'live'])
+            .in('status', ['scheduled', 'live', 'finished'])
             .order('updated_at', { ascending: false })
             .limit(1);
+
+          console.log('Display - Matchs récents trouvés:', recentMatches);
 
           if (recentMatches && recentMatches.length > 0) {
             const match = recentMatches[0];
@@ -74,8 +83,10 @@ function App(){
             setAway(match.away_name);
             connectToMatch(match);
           } else {
+            console.log('Display - Aucun match trouvé');
             setConnectionStatus('Aucun match disponible');
             setState(null);
+            setCurrentMatch(null);
           }
         }
       } catch (error) {
@@ -90,15 +101,15 @@ function App(){
         displayConnection.close();
       }
 
-      setConnectionStatus('Connexion au match...');
+      setConnectionStatus(`Connexion au match: ${match.name}...`);
       
       const conn = connectDisplay(
-        match.org_slug || 'org', 
+        'org', // Utiliser 'org' par défaut pour la compatibilité
         match.id, 
         match.display_token, 
         (s: MatchState, info: any) => {
           console.log('Display - État reçu:', s, info);
-          setConnectionStatus('Connecté - Match en cours');
+          setConnectionStatus(`Connecté - ${match.name}`);
           setState(s);
           if (info) { 
             setHome(info.home_name || match.home_name); 
@@ -116,7 +127,7 @@ function App(){
         displayConnection.close();
       }
     };
-  }, []);
+  }, [displayConnection]);
 
   // Gestion du tick pour les horloges
   useEffect(() => { 

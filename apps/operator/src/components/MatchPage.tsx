@@ -20,8 +20,24 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
   // Marquer le match comme "live" quand il est sélectionné
   useEffect(() => {
     const markAsLive = async () => {
-      await supa.from('matches').update({ status: 'live' }).eq('id', match.id);
-      console.log('Match marqué comme live:', match.id);
+      try {
+        const { data, error } = await supa
+          .from('matches')
+          .update({ 
+            status: 'live',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', match.id)
+          .select('*');
+        
+        if (error) {
+          console.error('Erreur lors du marquage live:', error);
+        } else {
+          console.log('Match marqué comme live:', data);
+        }
+      } catch (err) {
+        console.error('Erreur inattendue:', err);
+      }
     };
     markAsLive();
   }, [match.id]);

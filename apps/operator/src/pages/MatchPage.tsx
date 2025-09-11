@@ -127,7 +127,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
 
   async function archiveMatch() {
     if (matchStarted) {
-      alert('Impossible d\'archiver un match en cours. Veuillez d\'abord arrêter le match ou attendre sa fin.');
+      alert('Impossible d\'archiver un match en cours. Veuillez d\'abord arrêter le chronomètre et terminer le match.');
       return;
     }
     
@@ -218,21 +218,6 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
       </div>
 
       <div className="match-info">
-        {matchStarted && (
-          <div style={{ 
-            background: '#dc2626', 
-            color: 'white', 
-            padding: '8px 12px', 
-            borderRadius: '8px', 
-            fontSize: '14px',
-            marginBottom: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            🔴 <strong>Match en cours</strong> - L'archivage est désactivé
-          </div>
-        )}
         <div className="sport-display">
           <strong>Sport actuel:</strong> <span className="sport-badge">{state.sport}</span>
         </div>

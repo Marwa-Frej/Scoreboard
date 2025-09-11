@@ -7,7 +7,6 @@ const SPORTS: Sport[] = ['basic','football','handball','basket','hockey_ice','ho
 interface SpacePageProps {
   user: any;
   org: { id: string, slug: string, name: string } | null;
-  matches: MatchInfo[];
   onMatchSelect: (match: MatchInfo) => void;
   onMatchesUpdate: (matches: MatchInfo[]) => void;
 }
@@ -24,7 +23,7 @@ interface MatchFormData {
 }
 
 export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }: SpacePageProps) {
-  const [showCreateModal, setShowCreateModal] = useState(false);
+export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }: SpacePageProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [form, setForm] = useState<MatchFormData>({ 
@@ -38,7 +37,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
     time: '' 
   });
   const [createMsg, setCreateMsg] = useState<string>('');
-  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Séparer les matchs en cours/à venir et archivés
   const upcomingMatches = matches.filter(m => m.status === 'scheduled' || m.status === 'live');
@@ -66,13 +65,11 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
   }
 
   function openCreateModal() {
-    setIsEditing(false);
     resetForm();
     setShowCreateModal(true);
   }
 
   function openEditModal(match: MatchInfo) {
-    setIsEditing(true);
     setEditingMatchId(match.id);
     const matchDate = new Date(match.scheduled_at);
     setForm({
@@ -92,7 +89,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
     setShowCreateModal(false);
     setShowEditModal(false);
     setEditingMatchId(null);
-    setIsEditing(false);
+    setIsSubmitting(false);
     resetForm();
   }
 
@@ -132,11 +129,17 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
   }
 
   async function handleSubmit() {
-    if (isEditing) {
+    if (isSubmitting) return; // Éviter les doubles soumissions
+    
+    setIsSubmitting(true);
+    
+    if (editingMatchId) {
       await saveEditMatch();
     } else {
       await createMatch();
     }
+    
+    setIsSubmitting(false);
   }
 
   async function saveEditMatch() {
@@ -268,6 +271,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                   onClick={openCreateModal}
                   className="add-match-btn"
                   title="Ajouter un nouveau match"
+                  disabled={isSubmitting}
                 >
                   ➕ Ajouter un match
                 </button>
@@ -311,18 +315,21 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                 <button 
                   onClick={() => onMatchSelect(m)} 
                   className="primary"
+                  disabled={isSubmitting}
                 >
                   Sélectionner
                 </button>
                 <button 
                   onClick={() => openEditModal(m)} 
                   style={{ background: '#f59e0b', borderColor: '#f59e0b', color: 'white' }}
+                  disabled={isSubmitting}
                 >
                   ✏️ Modifier
                 </button>
                 <button 
                   onClick={() => deleteMatch(m.id)} 
                   className="danger"
+                  disabled={isSubmitting}
                 >
                   🗑️ Supprimer
                 </button>
@@ -356,6 +363,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                     <button 
                       onClick={() => onMatchSelect(m)} 
                       style={{ background: '#6b7280', borderColor: '#6b7280' }}
+                      disabled={isSubmitting}
                     >
                       Sélectionner
                     </button>
@@ -371,11 +379,12 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
           <div className="modal-overlay" onClick={closeModals}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>{isEditing ? '✏️ Modifier le match' : '➕ Nouveau match'}</h2>
+                <h2>{editingMatchId ? '✏️ Modifier le match' : '➕ Nouveau match'}</h2>
                 <button 
                   className="modal-close"
                   onClick={closeModals}
                   title="Fermer"
+                  disabled={isSubmitting}
                 >
                   ✕
                 </button>
@@ -390,6 +399,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                       placeholder="Ex: Finale championnat" 
                       value={form.name} 
                       onChange={e => setForm({ ...form, name: e.target.value })} 
+                      disabled={isSubmitting}
                     />
                   </div>
                   
@@ -399,6 +409,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                       className="input"
                       value={form.sport} 
                       onChange={e => setForm({ ...form, sport: e.target.value as Sport })}
+                      disabled={isSubmitting}
                     >
                       {SPORTS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -412,6 +423,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                         placeholder="Nom équipe A" 
                         value={form.home_name} 
                         onChange={e => setForm({ ...form, home_name: e.target.value })} 
+                        disabled={isSubmitting}
                       />
                       <div className="logo-upload">
                         <label className="logo-upload-label">
@@ -421,6 +433,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                             accept="image/*" 
                             onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'home')}
                             style={{ display: 'none' }}
+                            disabled={isSubmitting}
                           />
                         </label>
                         {form.home_logo && (
@@ -431,6 +444,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                               onClick={() => removeImage('home')}
                               className="logo-remove"
                               title="Supprimer le logo"
+                              disabled={isSubmitting}
                             >
                               ✕
                             </button>
@@ -445,6 +459,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                         placeholder="Nom équipe B" 
                         value={form.away_name} 
                         onChange={e => setForm({ ...form, away_name: e.target.value })} 
+                        disabled={isSubmitting}
                       />
                       <div className="logo-upload">
                         <label className="logo-upload-label">
@@ -454,6 +469,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                             accept="image/*" 
                             onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'away')}
                             style={{ display: 'none' }}
+                            disabled={isSubmitting}
                           />
                         </label>
                         {form.away_logo && (
@@ -464,6 +480,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                               onClick={() => removeImage('away')}
                               className="logo-remove"
                               title="Supprimer le logo"
+                              disabled={isSubmitting}
                             >
                               ✕
                             </button>
@@ -481,6 +498,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                         type="date" 
                         value={form.date} 
                         onChange={e => setForm({ ...form, date: e.target.value })} 
+                        disabled={isSubmitting}
                       />
                     </div>
                     <div className="form-field">
@@ -490,6 +508,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                         type="time" 
                         value={form.time} 
                         onChange={e => setForm({ ...form, time: e.target.value })} 
+                        disabled={isSubmitting}
                       />
                     </div>
                   </div>
@@ -508,15 +527,16 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                 <button 
                   onClick={closeModals}
                   className="secondary"
+                  disabled={isSubmitting}
                 >
                   Annuler
                 </button>
                 <button 
                   onClick={handleSubmit}
                   className="primary"
-                  disabled={!form.name.trim()}
+                  disabled={!form.name.trim() || isSubmitting}
                 >
-                  {isEditing ? '✅ Sauvegarder' : '✅ Créer le match'}
+                  {isSubmitting ? '⏳ En cours...' : (editingMatchId ? '✅ Sauvegarder' : '✅ Créer le match')}
                 </button>
               </div>
             </div>

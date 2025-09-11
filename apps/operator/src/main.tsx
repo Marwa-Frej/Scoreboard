@@ -16,6 +16,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState<'space' | 'match'>('space');
   const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
   const [error, setError] = useState<string>('');
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Auth simple - une seule fois
   useEffect(() => {
@@ -56,8 +57,11 @@ function App() {
       setCurrentPage('space');
       setSelectedMatch(null);
       setError('');
+      setDataLoaded(false);
       return;
     }
+
+    if (dataLoaded) return; // Éviter les rechargements multiples
 
     console.log('📊 Data - Chargement pour utilisateur:', user.email);
     
@@ -65,6 +69,8 @@ function App() {
     
     async function loadData() {
       try {
+        setError(''); // Reset des erreurs
+        
         // Charger les organisations
         const { data: orgs, error: orgError } = await supa
           .from('org_members_with_org')
@@ -112,6 +118,7 @@ function App() {
 
         console.log('📋 Matchs chargés:', matchesData?.length || 0);
         setMatches(matchesData || []);
+        setDataLoaded(true);
 
       } catch (err) {
         if (!isMounted) return;
@@ -125,7 +132,7 @@ function App() {
     return () => {
       isMounted = false;
     };
-  }, [user?.id]); // Seulement quand l'ID utilisateur change
+  }, [user?.id, dataLoaded]); // Seulement quand l'ID utilisateur change ou si pas encore chargé
 
   // Fonctions de navigation simples
   function handleMatchSelect(match: MatchInfo) {
@@ -187,7 +194,6 @@ function App() {
     <SpacePage 
       user={user}
       org={org}
-      orgs={org ? [org] : []}
       matches={matches}
       onMatchSelect={handleMatchSelect}
       onMatchesUpdate={handleMatchesUpdate}

@@ -35,6 +35,12 @@ const initialFormData: MatchFormData = {
 };
 
 export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }: SpacePageProps) {
+  console.log('🏠 SpacePage - Rendu avec:', { 
+    user: user?.email, 
+    org: org?.name, 
+    matchesCount: matches.length 
+  });
+  
   // États stables - pas de réinitialisation intempestive
   const [modalState, setModalState] = useState<{
     type: 'none' | 'create' | 'edit';

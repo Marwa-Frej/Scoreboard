@@ -17,6 +17,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
   const [displayUrl, setDisplayUrl] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
   const [archiving, setArchiving] = useState(false);
+  const [matchStarted, setMatchStarted] = useState(false);
 
   // Marquer le match comme "live" quand il est sélectionné
   useEffect(() => {
@@ -47,6 +48,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     const key = `${match.org_id}:${match.id}`;
     const newState = initMatchState(key, match.sport);
     setState(newState);
+    setMatchStarted(false);
     
     if (chan) chan.close();
     
@@ -77,12 +79,20 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     setDisplayUrl(u.toString());
 
     return () => {
-      // Marquer le match comme "scheduled" quand on quitte la page
-      const markAsScheduled = async () => {
-        await supa.from('matches').update({ status: 'scheduled' }).eq('id', match.id);
-        console.log('Match marqué comme scheduled:', match.id);
+      // Reset du match quand on quitte la page
+      const resetMatch = async () => {
+        try {
+          // Remettre le match en "scheduled" et reset l'état
+          await supa.from('matches').update({ 
+            status: 'scheduled',
+            updated_at: new Date().toISOString()
+          }).eq('id', match.id);
+          console.log('Match remis en scheduled et état resetté:', match.id);
+        } catch (error) {
+          console.error('Erreur lors du reset du match:', error);
+        }
       };
-      markAsScheduled();
+      resetMatch();
       
       if (c) c.close();
     };
@@ -96,6 +106,12 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
 
   function send(type: string, payload?: any) {
     if (!state || !chan) return;
+    
+    // Détecter si le match a commencé (horloge démarrée ou score modifié)
+    if (type === 'clock:start' || type.includes('score:') || type.includes('goal') || type.includes('point')) {
+      setMatchStarted(true);
+    }
+    
     const next = reduce(state, { type, payload });
     setState(next);
     console.log('Envoi état vers Display:', { type, payload, state: next });
@@ -103,6 +119,11 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
   }
 
   async function archiveMatch() {
+    if (matchStarted) {
+      alert('Impossible d\'archiver un match en cours. Veuillez d\'abord arrêter le match ou attendre sa fin.');
+      return;
+    }
+    
     if (!confirm('Êtes-vous sûr de vouloir archiver ce match ? Il sera déplacé dans la section des matchs archivés.')) {
       return;
     }
@@ -174,11 +195,14 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
           <button 
             onClick={archiveMatch}
             disabled={archiving}
+            title={matchStarted ? "Impossible d'archiver un match en cours" : "Archiver ce match"}
             style={{ 
-              background: '#f59e0b', 
-              borderColor: '#f59e0b',
+              background: matchStarted ? '#6b7280' : '#f59e0b', 
+              borderColor: matchStarted ? '#6b7280' : '#f59e0b',
               color: 'white',
-              minHeight: '40px'
+              minHeight: '40px',
+              cursor: matchStarted ? 'not-allowed' : 'pointer',
+              opacity: matchStarted ? 0.6 : 1
             }}
           >
             {archiving ? '📦 Archivage...' : '📦 Archiver'}
@@ -187,6 +211,21 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
       </div>
 
       <div className="match-info">
+        {matchStarted && (
+          <div style={{ 
+            background: '#dc2626', 
+            color: 'white', 
+            padding: '8px 12px', 
+            borderRadius: '8px', 
+            fontSize: '14px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            🔴 <strong>Match en cours</strong> - L'archivage est désactivé
+          </div>
+        )}
         <div className="sport-display">
           <strong>Sport actuel:</strong> <span className="sport-badge">{state.sport}</span>
         </div>

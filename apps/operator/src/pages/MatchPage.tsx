@@ -247,6 +247,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
             <div className="period-display">Période {state.clock.period}</div>
             <button onClick={() => send('clock:reset')}>⟲ Reset</button>
             <button onClick={() => send('period:next')}>Période +1</button>
+            <button onClick={() => send('period:prev')}>Période -1</button>
           </div>
         )}
         

@@ -33,6 +33,7 @@ function BasicPanel({send}:{send:(a:string,p?:any)=>void}){
         <button className="danger" onClick={()=>send('clock:stop')}>⏸ Arrêter</button>
         <button onClick={()=>send('clock:reset')}>⟲ Reset</button>
         <button onClick={()=>send('period:next')}>Période +1</button>
+        <button onClick={()=>send('period:prev')}>Période -1</button>
       </ControlSection>
       
       <ControlSection title="Score Équipe A">

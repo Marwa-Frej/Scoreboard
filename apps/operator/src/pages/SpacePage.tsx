@@ -252,23 +252,33 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
   }, [operationState.isSubmitting, modalState.type, createMatch, editMatch]);
 
   const deleteMatch = useCallback(async (matchId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) {
       return;
     }
+
+    console.log('🗑️ Suppression du match:', matchId);
+    setOperationState(prev => ({ ...prev, isSubmitting: true }));
+    setMessage('Suppression en cours...', 'info');
 
     try {
       const { error } = await supa.from('matches').delete().eq('id', matchId);
       
       if (error) {
-        alert(`Erreur lors de la suppression: ${error.message}`);
+        console.error('❌ Erreur suppression:', error);
+        setMessage(`Erreur lors de la suppression: ${error.message}`, 'error');
         return;
       }
       
+      console.log('✅ Match supprimé avec succès');
       const updatedMatches = matches.filter(m => m.id !== matchId);
       onMatchesUpdate(updatedMatches);
+      setMessage('Match supprimé avec succès !', 'success');
       
     } catch (err) {
-      alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
+      console.error('💥 Erreur inattendue:', err);
+      setMessage(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`, 'error');
+    } finally {
+      setOperationState(prev => ({ ...prev, isSubmitting: false }));
     }
   }, [matches, onMatchesUpdate]);
 
@@ -350,6 +360,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                   onClick={() => deleteMatch(m.id)} 
                   className="danger"
                   disabled={operationState.isSubmitting}
+                  title="Supprimer ce match définitivement"
                 >
                   🗑️ Supprimer
                 </button>

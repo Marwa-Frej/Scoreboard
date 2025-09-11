@@ -4,6 +4,7 @@ import { initMatchState, reduce } from '../state';
 import { Panel } from './Panels';
 import { createOperatorChannel } from '../realtime';
 import { applyTick } from '@pkg/logic';
+import { supa } from '../supabase';
 
 interface MatchPageProps {
   match: MatchInfo;
@@ -15,6 +16,15 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
   const [chan, setChan] = useState<any>(null);
   const [displayUrl, setDisplayUrl] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
+
+  // Marquer le match comme "live" quand il est sélectionné
+  useEffect(() => {
+    const markAsLive = async () => {
+      await supa.from('matches').update({ status: 'live' }).eq('id', match.id);
+      console.log('Match marqué comme live:', match.id);
+    };
+    markAsLive();
+  }, [match.id]);
 
   useEffect(() => {
     const key = `${match.org_id}:${match.id}`;
@@ -50,6 +60,13 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     setDisplayUrl(u.toString());
 
     return () => {
+      // Marquer le match comme "scheduled" quand on quitte la page
+      const markAsScheduled = async () => {
+        await supa.from('matches').update({ status: 'scheduled' }).eq('id', match.id);
+        console.log('Match marqué comme scheduled:', match.id);
+      };
+      markAsScheduled();
+      
       if (c) c.close();
     };
   }, [match]);

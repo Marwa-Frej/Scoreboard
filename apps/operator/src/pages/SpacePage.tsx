@@ -13,6 +13,7 @@ interface SpacePageProps {
 }
 
 export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }: SpacePageProps) {
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState({ 
     name: 'Match', 
     sport: 'basic' as Sport, 
@@ -66,6 +67,22 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
   function cancelEdit() {
     setEditingMatch(null);
     setEditForm(null);
+  }
+
+  async function handleCreateMatch() {
+    await createMatch();
+    if (!createMsg.includes('Erreur')) {
+      setShowCreateModal(false);
+      // Reset du formulaire
+      setForm({ 
+        name: 'Match', 
+        sport: 'basic' as Sport, 
+        home_name: 'HOME', 
+        away_name: 'AWAY', 
+        date: '', 
+        time: '' 
+      });
+    }
   }
 
   async function saveEditMatch() {
@@ -181,7 +198,18 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
         <div className="space-header">
           <h1 className="h1">⚽ Scoreboard Pro</h1>
           <div className="row" style={{ justifyContent: 'space-between' }}>
-            <div><strong>{org?.name || 'Aucun espace disponible'}</strong></div>
+            <div className="org-section">
+              <strong>{org?.name || 'Aucun espace disponible'}</strong>
+              {org && (
+                <button 
+                  onClick={() => setShowCreateModal(true)}
+                  className="add-match-btn"
+                  title="Ajouter un nouveau match"
+                >
+                  ➕ Ajouter un match
+                </button>
+              )}
+            </div>
             <button 
               onClick={() => supa.auth.signOut()} 
               style={{ background: '#dc2626', borderColor: '#dc2626' }}
@@ -189,72 +217,6 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
               Déconnexion
             </button>
           </div>
-        </div>
-
-        <div className="sep" />
-        
-        <h2 className="h1">Nouveau match</h2>
-        <div className="form-grid">
-          <div className="row">
-            <input 
-              className="input" 
-              placeholder="Nom du match" 
-              value={form.name} 
-              onChange={e => setForm({ ...form, name: e.target.value })} 
-              style={{ width: 260 }}
-            />
-          </div>
-          
-          <div className="row">
-            <label>Sport</label>
-            <select 
-              value={form.sport} 
-              onChange={e => setForm({ ...form, sport: e.target.value as Sport })}
-            >
-              {SPORTS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          
-          <div className="row">
-            <input 
-              className="input" 
-              placeholder="Équipe A" 
-              value={form.home_name} 
-              onChange={e => setForm({ ...form, home_name: e.target.value })} 
-              style={{ width: 160 }}
-            />
-            <input 
-              className="input" 
-              placeholder="Équipe B" 
-              value={form.away_name} 
-              onChange={e => setForm({ ...form, away_name: e.target.value })} 
-              style={{ width: 160 }}
-            />
-          </div>
-          
-          <div className="row">
-            <input 
-              className="input" 
-              type="date" 
-              value={form.date} 
-              onChange={e => setForm({ ...form, date: e.target.value })} 
-            />
-            <input 
-              className="input" 
-              type="time" 
-              value={form.time} 
-              onChange={e => setForm({ ...form, time: e.target.value })} 
-            />
-            <button onClick={createMatch} className="primary">Créer</button>
-          </div>
-          
-          {createMsg && (
-            <div className="small" style={{ 
-              color: createMsg.includes('Erreur') ? '#ff6b6b' : '#4ade80' 
-            }}>
-              {createMsg}
-            </div>
-          )}
         </div>
 
         <div className="sep" />
@@ -397,6 +359,115 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
               ))}
             </div>
           </>
+        )}
+
+        {/* Modal de création de match */}
+        {showCreateModal && (
+          <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>➕ Nouveau match</h2>
+                <button 
+                  className="modal-close"
+                  onClick={() => setShowCreateModal(false)}
+                  title="Fermer"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-row">
+                    <label>Nom du match</label>
+                    <input 
+                      className="input" 
+                      placeholder="Ex: Finale championnat" 
+                      value={form.name} 
+                      onChange={e => setForm({ ...form, name: e.target.value })} 
+                    />
+                  </div>
+                  
+                  <div className="form-row">
+                    <label>Sport</label>
+                    <select 
+                      className="input"
+                      value={form.sport} 
+                      onChange={e => setForm({ ...form, sport: e.target.value as Sport })}
+                    >
+                      {SPORTS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  
+                  <div className="form-row-split">
+                    <div className="form-field">
+                      <label>Équipe A</label>
+                      <input 
+                        className="input" 
+                        placeholder="Nom équipe A" 
+                        value={form.home_name} 
+                        onChange={e => setForm({ ...form, home_name: e.target.value })} 
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Équipe B</label>
+                      <input 
+                        className="input" 
+                        placeholder="Nom équipe B" 
+                        value={form.away_name} 
+                        onChange={e => setForm({ ...form, away_name: e.target.value })} 
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="form-row-split">
+                    <div className="form-field">
+                      <label>Date</label>
+                      <input 
+                        className="input" 
+                        type="date" 
+                        value={form.date} 
+                        onChange={e => setForm({ ...form, date: e.target.value })} 
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Heure</label>
+                      <input 
+                        className="input" 
+                        type="time" 
+                        value={form.time} 
+                        onChange={e => setForm({ ...form, time: e.target.value })} 
+                      />
+                    </div>
+                  </div>
+                  
+                  {createMsg && (
+                    <div className="form-message" style={{ 
+                      color: createMsg.includes('Erreur') ? '#ff6b6b' : '#4ade80' 
+                    }}>
+                      {createMsg}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="modal-footer">
+                <button 
+                  onClick={() => setShowCreateModal(false)}
+                  className="secondary"
+                >
+                  Annuler
+                </button>
+                <button 
+                  onClick={handleCreateMatch}
+                  className="primary"
+                  disabled={!form.name.trim()}
+                >
+                  ✅ Créer le match
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

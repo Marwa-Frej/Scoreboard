@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client';
 import './theme.css';
 import type { MatchInfo } from '@pkg/types';
 import { supa } from './supabase';
-import { SpacePage } from './components/SpacePage';
-import { MatchPage } from './components/MatchPage';
+import { SpacePage } from './pages/SpacePage';
+import { MatchPage } from './pages/MatchPage';
 
 console.log('🚀 Operator - Démarrage de l\'application');
 

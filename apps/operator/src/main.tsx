@@ -1,14 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './theme.css';
-import type { MatchInfo, MatchState, Sport } from '@pkg/types';
+import type { MatchInfo } from '@pkg/types';
 import { supa } from './supabase';
-import { initMatchState, reduce } from './state';
-import { Panel } from './components/Panels';
-import { createOperatorChannel } from './realtime';
-import { applyTick } from '@pkg/logic';
-
-const SPORTS: Sport[] = ['basic','football','handball','basket','hockey_ice','hockey_field','volleyball'];
+import { SpacePage } from './components/SpacePage';
+import { MatchPage } from './components/MatchPage';
 
 function useAuth(){
   const [user, setUser] = useState<any>(null);
@@ -47,29 +43,24 @@ function App(){
   const [org, setOrg] = useState<{ id:string, slug:string, name:string }|null>(null);
   const [orgs, setOrgs] = useState<any[]>([]);
   const [matches, setMatches] = useState<MatchInfo[]>([]);
-  const [current, setCurrent] = useState<MatchInfo|null>(null);
-  const [state, setState] = useState<MatchState|null>(null);
-  const [form, setForm] = useState({ name:'Match', sport:'basic' as Sport, home_name:'HOME', away_name:'AWAY', date:'', time:'' });
-  const [displayUrl, setDisplayUrl] = useState<string>('');
-  const [chan, setChan] = useState<any>(null);
-  const [createMsg, setCreateMsg] = useState<string>('');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [currentPage, setCurrentPage] = useState<'space' | 'match'>('space');
+  const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
 
   useEffect(()=>{ 
-    if (!user) return; 
-    (async()=>{
+    if (!user) return;
+    (async () => {
       const { data: orgs } = await supa.from('org_members_with_org').select('*').eq('user_id', user.id);
-      setOrgs(orgs||[]);
+      setOrgs(orgs || []);
       if (orgs && orgs.length > 0) {
-        const userOrg = orgs[0]; // Prendre la première organisation de l'utilisateur
+        const userOrg = orgs[0];
         setOrg({ 
           id: userOrg.org_id, 
           slug: userOrg.org_slug, 
           name: userOrg.org_name || userOrg.name 
         });
       }
-    })(); 
-  }, [user]); // Retirer 'org' des dépendances pour éviter la boucle
+    })();
+  }, [user]);
 
   useEffect(()=>{ 
     if (!org?.id) return; 
@@ -79,222 +70,51 @@ function App(){
     })(); 
   }, [org]);
 
-  useEffect(()=>{ 
-    if (!state?.matchId) return; 
-    const id = setInterval(()=> setState(prev => prev ? applyTick(prev) : prev), 100); 
-    return ()=>clearInterval(id); 
-  }, [state?.matchId]);
+  function handleMatchSelect(match: MatchInfo) {
+    setSelectedMatch(match);
+    setCurrentPage('match');
+  }
 
-  function scheduleISO(){ if (!form.date) return new Date().toISOString(); const hhmm = (form.time||'00:00').split(':'); const d = new Date(`${form.date}T${hhmm[0].padStart(2,'0')}:${(hhmm[1]||'00').padStart(2,'0')}:00`); return d.toISOString(); }
-  async function createMatch(){
-    if (!org) {
-      setCreateMsg('Erreur: Veuillez sélectionner un espace d\'abord');
-      setTimeout(() => setCreateMsg(''), 5000);
-      return;
-    }
-    if (!form.name.trim()) {
-      setCreateMsg('Erreur: Le nom du match est requis');
-      setTimeout(() => setCreateMsg(''), 5000);
-      return;
-    }
-    setCreateMsg('Création en cours...');
-    
-    try {
-      const display_token = Math.random().toString(36).substring(2, 15);
-      const { data, error } = await supa.from('matches').insert({ 
-        org_id: org.id, 
-        name: form.name, 
-        sport: form.sport, 
-        home_name: form.home_name, 
-        away_name: form.away_name, 
-        scheduled_at: scheduleISO(), 
-        status: 'scheduled', 
-        public_display: true, 
-        display_token 
-      }).select('*').single();
-      
-      if (error) { 
-        console.error('Database error:', error);
-        setCreateMsg(`Erreur: ${error.message}`);
-        setTimeout(() => setCreateMsg(''), 5000);
-        return; 
-      }
-      
-      setMatches(prev => [...prev, data as any]);
-      setCreateMsg('Match créé avec succès !');
-      setTimeout(() => setCreateMsg(''), 3000);
-      setForm({ name:'Match', sport:'basic' as Sport, home_name:'HOME', away_name:'AWAY', date:'', time:'' });
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setCreateMsg(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
-      setTimeout(() => setCreateMsg(''), 5000);
-    }
+  function handleBackToSpace() {
+    setCurrentPage('space');
+    setSelectedMatch(null);
   }
-  
-  async function deleteMatch(matchId: string) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) {
-      return;
-    }
-    
-    try {
-      const { error } = await supa.from('matches').delete().eq('id', matchId);
-      
-      if (error) {
-        console.error('Delete error:', error);
-        alert(`Erreur lors de la suppression: ${error.message}`);
-        return;
-      }
-      
-      // Mettre à jour la liste locale
-      setMatches(prev => prev.filter(m => m.id !== matchId));
-      
-      // Si le match supprimé était sélectionné, le désélectionner
-      if (current?.id === matchId) {
-        setCurrent(null);
-        setState(null);
-        setDisplayUrl('');
-        if (chan) {
-          chan.close();
-          setChan(null);
-        }
-        setIsSidebarCollapsed(false);
-      }
-      
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
-    }
+
+  function handleMatchesUpdate(updatedMatches: MatchInfo[]) {
+    setMatches(updatedMatches);
   }
-  
-  function openMatch(m: MatchInfo){
-    setCurrent(m);
-    const key = `${m.org_id}:${m.id}`;
-    const newState = initMatchState(key, m.sport);
-    setState(newState);
-    if (chan) chan.close();
-    const c = createOperatorChannel(
-      m.org_slug || 'org', 
-      m.id, 
-      m.display_token, 
-      () => { 
-        if (newState) c.publish(newState, m); 
-      }, 
-      () => { 
-        if (newState) c.publish(newState, m); 
-      }
+
+  if (!user) return <Login />;
+
+  if (currentPage === 'match' && selectedMatch) {
+    return (
+      <MatchPage 
+        match={selectedMatch} 
+        onBack={handleBackToSpace}
+      />
     );
-    setChan(c);
-    const u = new URL('http://localhost:5174/'); 
-    u.searchParams.set('org', m.org_slug||'org'); 
-    u.searchParams.set('match', m.id); 
-    u.searchParams.set('token', m.display_token); 
-    u.searchParams.set('ui','1'); 
-    setDisplayUrl(u.toString());
   }
 
-  function send(type:string, payload?:any){
-    if (!state || !chan || !current) return;
-    const next = reduce(state, { type, payload });
-    setState(next);
-    chan.publish(next, current);
-  }
-
-  if (!user) return <Login/>;
   return (
-    <div className={`app ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-toggle" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-          <span className="sidebar-toggle-icon">◀</span>
-        </div>
-        
-        <div className="sidebar-content">
-          <div className="card">
-            <h2 className="h1">Espace</h2>
-            <div className="row" style={{justifyContent: 'space-between'}}>
-              <div><strong>{org?.name || 'Aucun espace disponible'}</strong></div>
-              <button onClick={() => supa.auth.signOut()} style={{background: '#dc2626', borderColor: '#dc2626'}}>
-                Déconnexion
-              </button>
-            </div>
+    <SpacePage
+      user={user}
+      org={org}
+      orgs={orgs}
+      matches={matches}
+      onMatchSelect={handleMatchSelect}
+      onMatchesUpdate={handleMatchesUpdate}
+    />
+  );
+}
 
-            <div className="sep" />
-            <h2 className="h1">Nouveau match</h2>
-            <div className="row"><input className="input" placeholder="Nom" value={form.name} onChange={e=>setForm({...form, name:e.target.value})} style={{width:260}}/></div>
-            <div className="row"><label>Sport</label><select value={form.sport} onChange={e=>setForm({...form, sport: e.target.value as Sport})}>{SPORTS.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
-            <div className="row"><input className="input" placeholder="Équipe A" value={form.home_name} onChange={e=>setForm({...form, home_name:e.target.value})} style={{width:160}}/>
-              <input className="input" placeholder="Équipe B" value={form.away_name} onChange={e=>setForm({...form, away_name:e.target.value})} style={{width:160}}/></div>
-            <div className="row"><input className="input" type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} />
-              <input className="input" type="time" value={form.time} onChange={e=>setForm({...form, time:e.target.value})} /><button onClick={createMatch}>Créer</button></div>
-            {createMsg && <div className="small" style={{color: createMsg.includes('Erreur') ? '#ff6b6b' : '#4ade80'}}>{createMsg}</div>}
+function Preview({state, home, away}:{state:MatchState, home:string, away:string}){
+  const [Comp, setComp] = useState<any>(null);
+  useEffect(()=>{ import('./components/Scoreboard').then(m=>setComp(()=>m.Scoreboard)); const l = document.createElement('link'); l.rel='stylesheet'; l.href='/../display/src/theme.css'; document.head.appendChild(l); return ()=>{ document.head.removeChild(l) }; }, []);
+  return Comp ? <div style={{padding:16}}><Comp state={state} homeName={home} awayName={away} /></div> : null;
+}
 
-            <div className="sep" /><h2 className="h1">Matches</h2>
-            <div className="list">{matches.map(m => (
-              <div key={m.id} className="item">
-                <div>
-                  <div>{m.name} <span className="small">({m.sport})</span></div>
-                  <div className="small">{new Date(m.scheduled_at).toLocaleString()} • <span className="badge">{m.status}</span></div>
-                </div>
-                <div className="row">
-                  <button onClick={()=>openMatch(m)}>Sélectionner</button>
-                  {m.status === 'scheduled' && (
-                    <button 
-                      onClick={()=>deleteMatch(m.id)} 
-                      className="danger"
-                      title="Supprimer le match"
-                    >
-                      🗑️
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}</div>
+createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
 
-            {displayUrl && <div className="sep"/ >}
-            {displayUrl && <div className="small">Lien Display : <a href={displayUrl} target="_blank">{displayUrl}</a></div>}
-          </div>
-        </div>
-      </div>
-
-      <div className={`card preview match-area ${isSidebarCollapsed ? 'expanded' : ''}`}>{!current || !state ? <div className="small">Sélectionne un match…</div> : (
-        <div style={{width:'100%', height:'100%', display:'grid', gridTemplateRows:'auto auto auto 1fr', gap:16}}>
-          <div className="row" style={{justifyContent:'space-between', padding:'0 4px'}}>
-            <div><strong>{current.name}</strong> — {current.home_name} vs {current.away_name} <span className="small">({state.sport})</span></div>
-            <select value={state.sport} onChange={e=>send('sport:set', { sport: e.target.value })} style={{minWidth:'120px'}}>
-              {SPORTS.map(s=><option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          
-          <div className="main-score">
-            <div className="team-score">
-              <div className="team-name">{current.home_name}</div>
-              <div className="score-display">{state.score.home.toString().padStart(2,'0')}</div>
-            </div>
-            <div className="score-vs">:</div>
-            <div className="team-score">
-              <div className="team-name">{current.away_name}</div>
-              <div className="score-display">{state.score.away.toString().padStart(2,'0')}</div>
-            </div>
-          </div>
-          
-          {state.sport !== 'volleyball' && (
-            <div className="time-controls">
-              <button className="primary" onClick={()=>send('clock:start')}>▶</button>
-              <button className="danger" onClick={()=>send('clock:stop')}>⏸</button>
-              <div className="time-display">
-                {Math.floor(state.clock.remainingMs/60000).toString().padStart(2,'0')}:
-                {Math.floor((state.clock.remainingMs%60000)/1000).toString().padStart(2,'0')}
-              </div>
-              <div className="period-display">Période {state.clock.period}</div>
-              <button onClick={()=>send('clock:reset')}>⟲ Reset</button>
-              <button onClick={()=>send('period:next')}>Période +1</button>
-            </div>
-          )}
-          
-          <div style={{overflow:'auto'}}>
-            <Panel state={state} send={(a,p)=>send(a,p) as any}/>
-          </div>
-        </div>
-      )}</div>
     </div>
   );
 }

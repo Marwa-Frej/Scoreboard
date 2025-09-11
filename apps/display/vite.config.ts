@@ -4,7 +4,11 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  server: { port: 5174 },
+  server: { 
+    port: 5174,
+    host: true,
+    strictPort: true
+  },
   envDir: resolve(__dirname, '../../'),
   resolve: {
     alias: {

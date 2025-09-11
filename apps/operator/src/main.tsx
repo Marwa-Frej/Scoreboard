@@ -111,6 +111,23 @@ function App(){
   const [currentPage, setCurrentPage] = useState<'space' | 'match'>('space');
   const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
   const [error, setError] = useState<string>('');
+  const [envError, setEnvError] = useState<string>('');
+
+  // Vérifier la configuration au démarrage
+  useEffect(() => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      setEnvError('Configuration Supabase manquante. Veuillez configurer le fichier .env avec VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY');
+      return;
+    }
+    
+    if (supabaseUrl.includes('your_supabase') || supabaseKey.includes('your_supabase')) {
+      setEnvError('Veuillez remplacer les valeurs d\'exemple dans le fichier .env par vos vraies clés Supabase');
+      return;
+    }
+  }, []);
 
   useEffect(() => { 
     if (!user) return;
@@ -195,6 +212,29 @@ function App(){
       <div className="space-page" style={{display:'grid', placeItems:'center', minHeight:'100vh'}}>
         <div className="card" style={{width:360, textAlign:'center'}}>
           <div className="loading">Chargement...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Afficher les erreurs de configuration
+  if (envError) {
+    return (
+      <div className="space-page" style={{display:'grid', placeItems:'center', minHeight:'100vh'}}>
+        <div className="card" style={{width:500, textAlign:'center'}}>
+          <h2 className="h1" style={{color:'#ff6b6b'}}>⚙️ Configuration requise</h2>
+          <div style={{color:'#ff6b6b', marginBottom:'16px', lineHeight:'1.5'}}>{envError}</div>
+          <div style={{background:'#1a1a1a', padding:'12px', borderRadius:'8px', marginBottom:'16px', textAlign:'left', fontSize:'12px', fontFamily:'monospace'}}>
+            <div>1. Créez un fichier <strong>.env</strong> à la racine du projet</div>
+            <div>2. Ajoutez vos clés Supabase :</div>
+            <div style={{marginTop:'8px', color:'#4ade80'}}>
+              VITE_SUPABASE_URL=https://votre-projet.supabase.co<br/>
+              VITE_SUPABASE_ANON_KEY=votre_clé_anon
+            </div>
+          </div>
+          <button onClick={() => window.location.reload()} className="primary">
+            Recharger après configuration
+          </button>
         </div>
       </div>
     );

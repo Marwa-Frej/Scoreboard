@@ -19,11 +19,30 @@ function App(){
   const [state, setState] = useState<MatchState|null>(null);
   const [connectionStatus, setConnectionStatus] = useState<string>('En attente de sélection de match...');
   const [displayConnection, setDisplayConnection] = useState<any>(null);
+  const [envError, setEnvError] = useState<string>('');
 
   useEffect(()=>{ applyTheme(theme); }, [theme]);
   
+  // Vérifier la configuration au démarrage
+  useEffect(() => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      setEnvError('Configuration Supabase manquante');
+      return;
+    }
+    
+    if (supabaseUrl.includes('your_supabase') || supabaseKey.includes('your_supabase')) {
+      setEnvError('Configuration Supabase invalide');
+      return;
+    }
+  }, []);
+
   // Écouter les matchs actifs depuis la base de données
   useEffect(()=>{
+    if (envError) return;
+    
     const supa = createSupa();
     setConnectionStatus('Recherche de match actif...');
     
@@ -172,7 +191,7 @@ function App(){
 
   return (<div className="board">
     {state && <Scoreboard state={state} homeName={homeName} awayName={awayName} homeLogo={homeLogo||undefined} awayLogo={awayLogo||undefined}/>}
-    {!state && (
+    {!state && !envError && (
       <div style={{ 
         position: 'fixed', 
         top: '50%', 
@@ -197,6 +216,27 @@ function App(){
         <div style={{ fontSize: '12px', marginTop: '15px', color: '#666' }}>
           Le tableau de bord s'affichera automatiquement<br />
           quand un match sera sélectionné dans l'Operator
+        </div>
+      </div>
+    )}
+    {envError && (
+      <div style={{ 
+        position: 'fixed', 
+        top: '50%', 
+        left: '50%', 
+        transform: 'translate(-50%, -50%)', 
+        background: 'rgba(0,0,0,0.9)', 
+        color: 'white', 
+        padding: '30px', 
+        borderRadius: '15px',
+        textAlign: 'center',
+        maxWidth: '400px'
+      }}>
+        <div style={{ fontSize: '24px', marginBottom: '15px', color: '#ff6b6b' }}>⚙️ Configuration requise</div>
+        <div style={{ color: '#ff6b6b', marginBottom: '10px' }}>{envError}</div>
+        <div style={{ fontSize: '12px', marginTop: '15px', color: '#666' }}>
+          Veuillez configurer le fichier .env<br />
+          avec vos clés Supabase
         </div>
       </div>
     )}

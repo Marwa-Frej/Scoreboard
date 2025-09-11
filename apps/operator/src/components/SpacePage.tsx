@@ -125,6 +125,29 @@ export function SpacePage({ user, org, orgs, matches, onMatchSelect, onMatchesUp
     }
   }
 
+  async function loadMatches() {
+    if (!org?.id) return;
+    
+    try {
+      console.log('⚽ Matches - Rechargement pour org:', org.id);
+      const { data, error } = await supa
+        .from('matches')
+        .select('*')
+        .eq('org_id', org.id)
+        .order('scheduled_at');
+      
+      if (error) {
+        console.error('❌ Matches - Erreur rechargement:', error);
+        return;
+      }
+      
+      console.log('📋 Matches - Rechargés:', data?.length || 0);
+      onMatchesUpdate((data as any) || []);
+    } catch (err) {
+      console.error('💥 Matches - Erreur inattendue:', err);
+    }
+  }
+
   return (
     <div className="space-page">
       <div className="card">

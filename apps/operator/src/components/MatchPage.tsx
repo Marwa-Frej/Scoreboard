@@ -16,6 +16,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
   const [chan, setChan] = useState<any>(null);
   const [displayUrl, setDisplayUrl] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
+  const [archiving, setArchiving] = useState(false);
 
   // Marquer le match comme "live" quand il est sélectionné
   useEffect(() => {
@@ -101,6 +102,37 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     chan.publish(next, match);
   }
 
+  async function archiveMatch() {
+    if (!confirm('Êtes-vous sûr de vouloir archiver ce match ? Il sera déplacé dans la section des matchs archivés.')) {
+      return;
+    }
+    
+    setArchiving(true);
+    try {
+      const { error } = await supa
+        .from('matches')
+        .update({ 
+          status: 'archived',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', match.id);
+      
+      if (error) {
+        console.error('Erreur lors de l\'archivage:', error);
+        alert(`Erreur lors de l'archivage: ${error.message}`);
+      } else {
+        console.log('Match archivé avec succès');
+        // Fermer le canal avant de retourner
+        if (chan) chan.close();
+        onBack();
+      }
+    } catch (err) {
+      console.error('Erreur inattendue:', err);
+      alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
+    }
+    setArchiving(false);
+  }
+
   if (!state) {
     return (
       <div className="match-page">
@@ -120,18 +152,43 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
         <div className="match-title-section">
           <h1 className="match-title">{match.name}</h1>
           <div className="match-subtitle">
-            {match.home_name} vs {match.away_name} • {state.sport}
+            {match.home_name} vs {match.away_name}
           </div>
         </div>
-        <div className="sport-selector">
-          <select 
-            value={state.sport} 
-            onChange={e => send('sport:set', { sport: e.target.value })}
+        <div className="match-actions">
+          <div className="sport-selector">
+            <label>Sport:</label>
+            <select 
+              value={state.sport} 
+              onChange={e => send('sport:set', { sport: e.target.value })}
+            >
+              <option value="basic">Basic</option>
+              <option value="football">Football</option>
+              <option value="handball">Handball</option>
+              <option value="basket">Basketball</option>
+              <option value="hockey_ice">Hockey sur glace</option>
+              <option value="hockey_field">Hockey sur gazon</option>
+              <option value="volleyball">Volleyball</option>
+            </select>
+          </div>
+          <button 
+            onClick={archiveMatch}
+            disabled={archiving}
+            style={{ 
+              background: '#f59e0b', 
+              borderColor: '#f59e0b',
+              color: 'white',
+              minHeight: '40px'
+            }}
           >
-            {['basic','football','handball','basket','hockey_ice','hockey_field','volleyball'].map(s => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+            {archiving ? '📦 Archivage...' : '📦 Archiver'}
+          </button>
+        </div>
+      </div>
+
+      <div className="match-info">
+        <div className="sport-display">
+          <strong>Sport actuel:</strong> <span className="sport-badge">{state.sport}</span>
         </div>
       </div>
 

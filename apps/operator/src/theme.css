@@ -289,8 +289,51 @@ iframe{ width:100%; height:100%; border:0; background:black } .sep{ height:8px }
   color: #9aa0a6;
 }
 
+.match-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sport-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sport-selector label {
+  font-size: 14px;
+  color: #9aa0a6;
+  white-space: nowrap;
+}
+
 .sport-selector select {
-  min-width: 140px;
+  min-width: 160px;
+}
+
+.match-info {
+  background: var(--panel);
+  border: 1px solid #1b1c1f;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.sport-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.sport-badge {
+  background: #2563eb;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .match-content {

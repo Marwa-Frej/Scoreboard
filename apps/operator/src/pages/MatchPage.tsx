@@ -88,12 +88,13 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
       // Reset du match quand on quitte la page
       const resetMatch = async () => {
         try {
+          console.log('Operator - Reset du match:', match.id);
           // Remettre le match en "scheduled" et reset l'état
           await supa.from('matches').update({ 
             status: 'scheduled',
             updated_at: new Date().toISOString()
           }).eq('id', match.id);
-          console.log('Match remis en scheduled et état resetté:', match.id);
+          console.log('Operator - Match remis en scheduled:', match.id);
         } catch (error) {
           console.error('Erreur lors du reset du match:', error);
         }

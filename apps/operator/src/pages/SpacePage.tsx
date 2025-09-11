@@ -131,29 +131,6 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
     }));
   }
 
-  function scheduleISO() { 
-    if (!form.date) return new Date().toISOString(); 
-    const hhmm = (form.time || '00:00').split(':'); 
-    const d = new Date(`${form.date}T${hhmm[0].padStart(2,'0')}:${(hhmm[1] || '00').padStart(2,'0')}:00`); 
-    return d.toISOString();
-  }
-
-  function startEditMatch(match: MatchInfo) {
-    const matchDate = new Date(match.scheduled_at);
-    setEditingMatch(match.id);
-    setEditForm({
-      name: match.name,
-      sport: match.sport,
-      home_name: match.home_name,
-      away_name: match.away_name,
-      date: matchDate.toISOString().split('T')[0],
-      time: matchDate.toTimeString().substring(0, 5)
-    });
-  }
-
-  function cancelEdit() {
-    setEditingMatch(null);
-    setEditForm(null);
   async function handleSubmit() {
     if (isEditing) {
       await saveEditMatch();
@@ -190,6 +167,21 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
       }
       
       const updatedMatches = matches.map(m => 
+        m.id === editingMatchId ? data as any : m
+      );
+      onMatchesUpdate(updatedMatches);
+      setCreateMsg('Match modifié avec succès !');
+      setTimeout(() => {
+        closeModals();
+      }, 1500);
+      
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setCreateMsg(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
+      setTimeout(() => setCreateMsg(''), 5000);
+    }
+  }
+  
   async function createMatch() {
     if (!org) {
       setCreateMsg('Erreur: Veuillez sélectionner un espace d\'abord');

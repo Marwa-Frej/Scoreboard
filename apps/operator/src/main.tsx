@@ -87,8 +87,7 @@ function Login(){
             disabled={submitting}
             style={{width: '100%'}}
           >
-            {mode==='signin'?'Créer un compte':'J\'ai d          }
-éjà un compte'}
+            {mode==='signin'?'Créer un compte':'J\'ai déjà un compte'}
           </button>
         </div>
         {msg && <div className="small" style={{

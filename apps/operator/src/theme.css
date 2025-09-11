@@ -320,6 +320,77 @@ iframe{ width:100%; height:100%; border:0; background:black } .sep{ height:8px }
   text-align: center;
 }
 
+/* Styles pour l'upload de logos */
+.logo-upload {
+  margin-top: 8px;
+}
+
+.logo-upload-label {
+  display: inline-block;
+  background: #374151;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  border: 1px solid #4b5563;
+}
+
+.logo-upload-label:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.logo-preview {
+  position: relative;
+  display: inline-block;
+  margin-top: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #374151;
+}
+
+.logo-preview img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  display: block;
+}
+
+.logo-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.logo-remove:hover {
+  background: #b91c1c;
+  transform: scale(1.1);
+}
+
+/* Logos dans la liste des matchs */
+.team-logo-small {
+  width: 20px;
+  height: 20px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin: 0 4px;
+  vertical-align: middle;
+}
+
 .secondary {
   background: #374151 !important;
   border-color: #374151 !important;

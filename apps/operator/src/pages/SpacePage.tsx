@@ -12,26 +12,33 @@ interface SpacePageProps {
   onMatchesUpdate: (matches: MatchInfo[]) => void;
 }
 
+interface MatchFormData {
+  name: string;
+  sport: Sport;
+  home_name: string;
+  away_name: string;
+  home_logo?: string;
+  away_logo?: string;
+  date: string;
+  time: string;
+}
+
 export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }: SpacePageProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [form, setForm] = useState({ 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
+  const [form, setForm] = useState<MatchFormData>({ 
     name: 'Match', 
     sport: 'basic' as Sport, 
     home_name: 'HOME', 
     away_name: 'AWAY', 
+    home_logo: '',
+    away_logo: '',
     date: '', 
     time: '' 
   });
   const [createMsg, setCreateMsg] = useState<string>('');
-  const [editingMatch, setEditingMatch] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<{
-    name: string;
-    sport: Sport;
-    home_name: string;
-    away_name: string;
-    date: string;
-    time: string;
-  } | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Séparer les matchs en cours/à venir et archivés
   const upcomingMatches = matches.filter(m => m.status === 'scheduled' || m.status === 'live');
@@ -44,10 +51,90 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
     return d.toISOString(); 
   }
 
-  function editScheduleISO() {
-    if (!editForm?.date) return new Date().toISOString();
-    const hhmm = (editForm.time || '00:00').split(':');
-    const d = new Date(`${editForm.date}T${hhmm[0].padStart(2,'0')}:${(hhmm[1] || '00').padStart(2,'0')}:00`);
+  function resetForm() {
+    setForm({
+      name: 'Match',
+      sport: 'basic' as Sport,
+      home_name: 'HOME',
+      away_name: 'AWAY',
+      home_logo: '',
+      away_logo: '',
+      date: '',
+      time: ''
+    });
+    setCreateMsg('');
+  }
+
+  function openCreateModal() {
+    setIsEditing(false);
+    resetForm();
+    setShowCreateModal(true);
+  }
+
+  function openEditModal(match: MatchInfo) {
+    setIsEditing(true);
+    setEditingMatchId(match.id);
+    const matchDate = new Date(match.scheduled_at);
+    setForm({
+      name: match.name,
+      sport: match.sport,
+      home_name: match.home_name,
+      away_name: match.away_name,
+      home_logo: (match as any).home_logo || '',
+      away_logo: (match as any).away_logo || '',
+      date: matchDate.toISOString().split('T')[0],
+      time: matchDate.toTimeString().substring(0, 5)
+    });
+    setShowEditModal(true);
+  }
+
+  function closeModals() {
+    setShowCreateModal(false);
+    setShowEditModal(false);
+    setEditingMatchId(null);
+    setIsEditing(false);
+    resetForm();
+  }
+
+  function handleImageUpload(file: File, team: 'home' | 'away') {
+    if (!file) return;
+    
+    // Vérifier le type de fichier
+    if (!file.type.startsWith('image/')) {
+      setCreateMsg('Erreur: Veuillez sélectionner un fichier image');
+      setTimeout(() => setCreateMsg(''), 3000);
+      return;
+    }
+    
+    // Vérifier la taille (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setCreateMsg('Erreur: L\'image doit faire moins de 2MB');
+      setTimeout(() => setCreateMsg(''), 3000);
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setForm(prev => ({
+        ...prev,
+        [team === 'home' ? 'home_logo' : 'away_logo']: result
+      }));
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeImage(team: 'home' | 'away') {
+    setForm(prev => ({
+      ...prev,
+      [team === 'home' ? 'home_logo' : 'away_logo']: ''
+    }));
+  }
+
+  function scheduleISO() { 
+    if (!form.date) return new Date().toISOString(); 
+    const hhmm = (form.time || '00:00').split(':'); 
+    const d = new Date(`${form.date}T${hhmm[0].padStart(2,'0')}:${(hhmm[1] || '00').padStart(2,'0')}:00`); 
     return d.toISOString();
   }
 
@@ -67,62 +154,42 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
   function cancelEdit() {
     setEditingMatch(null);
     setEditForm(null);
-  }
-
-  async function handleCreateMatch() {
-    await createMatch();
-    if (!createMsg.includes('Erreur')) {
-      setShowCreateModal(false);
-      // Reset du formulaire
-      setForm({ 
-        name: 'Match', 
-        sport: 'basic' as Sport, 
-        home_name: 'HOME', 
-        away_name: 'AWAY', 
-        date: '', 
-        time: '' 
-      });
+  async function handleSubmit() {
+    if (isEditing) {
+      await saveEditMatch();
+    } else {
+      await createMatch();
     }
   }
 
   async function saveEditMatch() {
-    if (!editForm || !editingMatch) return;
+    if (!editingMatchId) return;
     
     try {
       const { data, error } = await supa
         .from('matches')
         .update({
-          name: editForm.name,
-          sport: editForm.sport,
-          home_name: editForm.home_name,
-          away_name: editForm.away_name,
-          scheduled_at: editScheduleISO(),
+          name: form.name,
+          sport: form.sport,
+          home_name: form.home_name,
+          away_name: form.away_name,
+          home_logo: form.home_logo || null,
+          away_logo: form.away_logo || null,
+          scheduled_at: scheduleISO(),
           updated_at: new Date().toISOString()
         })
-        .eq('id', editingMatch)
+        .eq('id', editingMatchId)
         .select('*')
         .single();
       
       if (error) {
         console.error('Update error:', error);
-        alert(`Erreur lors de la modification: ${error.message}`);
+        setCreateMsg(`Erreur lors de la modification: ${error.message}`);
+        setTimeout(() => setCreateMsg(''), 5000);
         return;
       }
       
       const updatedMatches = matches.map(m => 
-        m.id === editingMatch ? data as MatchInfo : m
-      );
-      onMatchesUpdate(updatedMatches);
-      
-      setEditingMatch(null);
-      setEditForm(null);
-      
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
-    }
-  }
-
   async function createMatch() {
     if (!org) {
       setCreateMsg('Erreur: Veuillez sélectionner un espace d\'abord');
@@ -144,6 +211,8 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
         sport: form.sport, 
         home_name: form.home_name, 
         away_name: form.away_name, 
+        home_logo: form.home_logo || null,
+        away_logo: form.away_logo || null,
         scheduled_at: scheduleISO(), 
         status: 'scheduled', 
         public_display: true, 
@@ -160,8 +229,10 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
       const updatedMatches = [...matches, data as any];
       onMatchesUpdate(updatedMatches);
       setCreateMsg('Match créé avec succès !');
-      setTimeout(() => setCreateMsg(''), 3000);
-      setForm({ name: 'Match', sport: 'basic' as Sport, home_name: 'HOME', away_name: 'AWAY', date: '', time: '' });
+      setTimeout(() => {
+        closeModals();
+      }, 1500);
+      
     } catch (err) {
       console.error('Unexpected error:', err);
       setCreateMsg(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
@@ -202,7 +273,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
               <strong>{org?.name || 'Aucun espace disponible'}</strong>
               {org && (
                 <button 
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={openCreateModal}
                   className="add-match-btn"
                   title="Ajouter un nouveau match"
                 >
@@ -224,105 +295,13 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
         <h2 className="h1">Matchs à venir ({upcomingMatches.length})</h2>
         <div className="matches-list">
           {upcomingMatches.map(m => (
-            <div key={m.id} className="match-row">
-              {editingMatch === m.id ? (
-                // Mode édition
-                <div className="match-edit-form">
-                  <div className="edit-form-row">
-                    <input 
-                      className="input" 
-                      value={editForm?.name || ''} 
-                      onChange={e => setEditForm(prev => prev ? {...prev, name: e.target.value} : null)}
-                      placeholder="Nom du match"
-                      style={{ flex: 1 }}
-                    />
-                    <select 
-                      value={editForm?.sport || 'basic'} 
-                      onChange={e => setEditForm(prev => prev ? {...prev, sport: e.target.value as Sport} : null)}
-                      style={{ width: 120 }}
-                    >
-                      {SPORTS.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  <div className="edit-form-row">
-                    <input 
-                      className="input" 
-                      value={editForm?.home_name || ''} 
-                      onChange={e => setEditForm(prev => prev ? {...prev, home_name: e.target.value} : null)}
-                      placeholder="Équipe A"
-                      style={{ flex: 1 }}
-                    />
-                    <span style={{ padding: '0 8px', color: '#9aa0a6' }}>vs</span>
-                    <input 
-                      className="input" 
-                      value={editForm?.away_name || ''} 
-                      onChange={e => setEditForm(prev => prev ? {...prev, away_name: e.target.value} : null)}
-                      placeholder="Équipe B"
-                      style={{ flex: 1 }}
-                    />
-                  </div>
-                  <div className="edit-form-row">
-                    <input 
-                      className="input" 
-                      type="date" 
-                      value={editForm?.date || ''} 
-                      onChange={e => setEditForm(prev => prev ? {...prev, date: e.target.value} : null)}
-                      style={{ flex: 1 }}
-                    />
-                    <input 
-                      className="input" 
-                      type="time" 
-                      value={editForm?.time || ''} 
-                      onChange={e => setEditForm(prev => prev ? {...prev, time: e.target.value} : null)}
-                      style={{ flex: 1 }}
-                    />
-                  </div>
-                  <div className="edit-form-actions">
-                    <button onClick={saveEditMatch} className="success">
-                      ✅ Sauvegarder
-                    </button>
-                    <button onClick={cancelEdit} style={{ background: '#6b7280', borderColor: '#6b7280' }}>
-                      ❌ Annuler
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                // Mode affichage normal
-                <>
-                  <div className="match-details">
-                    <div className="match-name">{m.name}</div>
-                    <div className="match-teams">{m.home_name} vs {m.away_name}</div>
-                    <div className="match-sport">
-                      <span className="sport-badge">{m.sport}</span>
-                    </div>
-                  </div>
-                  <div className="match-datetime">
-                    <div className="match-date">{new Date(m.scheduled_at).toLocaleDateString('fr-FR')}</div>
-                    <div className="match-time">{new Date(m.scheduled_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
-                  </div>
-                  <div className="match-actions">
-                    <button 
-                      onClick={() => onMatchSelect(m)} 
-                      className="primary"
-                    >
-                      Sélectionner
-                    </button>
-                    <button 
-                      onClick={() => startEditMatch(m)} 
-                      style={{ background: '#f59e0b', borderColor: '#f59e0b', color: 'white' }}
-                    >
-                      ✏️ Modifier
-                    </button>
-                    <button 
-                      onClick={() => deleteMatch(m.id)} 
-                      className="danger"
-                    >
-                      🗑️ Supprimer
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            <MatchRow 
+              key={m.id} 
+              match={m} 
+              onSelect={() => onMatchSelect(m)}
+              onEdit={() => openEditModal(m)}
+              onDelete={() => deleteMatch(m.id)}
+            />
           ))}
           {upcomingMatches.length === 0 && (
             <div className="empty-list">
@@ -338,38 +317,26 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
             <h2 className="h1">Matchs archivés ({archivedMatches.length})</h2>
             <div className="matches-list archived">
               {archivedMatches.map(m => (
-                <div key={m.id} className="match-row archived">
-                  <div className="match-details">
-                    <div className="match-name">{m.name}</div>
-                    <div className="match-teams">{m.home_name} vs {m.away_name}</div>
-                  </div>
-                  <div className="match-datetime">
-                    <div className="match-date">{new Date(m.scheduled_at).toLocaleDateString('fr-FR')}</div>
-                    <div className="match-time">{new Date(m.scheduled_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
-                  </div>
-                  <div className="match-actions">
-                    <button 
-                      onClick={() => onMatchSelect(m)} 
-                      style={{ background: '#6b7280', borderColor: '#6b7280' }}
-                    >
-                      Sélectionner
-                    </button>
-                  </div>
-                </div>
+                <MatchRow 
+                  key={m.id} 
+                  match={m} 
+                  onSelect={() => onMatchSelect(m)}
+                  archived={true}
+                />
               ))}
             </div>
           </>
         )}
 
-        {/* Modal de création de match */}
-        {showCreateModal && (
-          <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+        {/* Modal de création/modification de match */}
+        {(showCreateModal || showEditModal) && (
+          <div className="modal-overlay" onClick={closeModals}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>➕ Nouveau match</h2>
+                <h2>{isEditing ? '✏️ Modifier le match' : '➕ Nouveau match'}</h2>
                 <button 
                   className="modal-close"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={closeModals}
                   title="Fermer"
                 >
                   ✕
@@ -408,6 +375,30 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                         value={form.home_name} 
                         onChange={e => setForm({ ...form, home_name: e.target.value })} 
                       />
+                      <div className="logo-upload">
+                        <label className="logo-upload-label">
+                          📷 Logo équipe A
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'home')}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                        {form.home_logo && (
+                          <div className="logo-preview">
+                            <img src={form.home_logo} alt="Logo équipe A" />
+                            <button 
+                              type="button" 
+                              onClick={() => removeImage('home')}
+                              className="logo-remove"
+                              title="Supprimer le logo"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="form-field">
                       <label>Équipe B</label>
@@ -417,6 +408,30 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                         value={form.away_name} 
                         onChange={e => setForm({ ...form, away_name: e.target.value })} 
                       />
+                      <div className="logo-upload">
+                        <label className="logo-upload-label">
+                          📷 Logo équipe B
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'away')}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                        {form.away_logo && (
+                          <div className="logo-preview">
+                            <img src={form.away_logo} alt="Logo équipe B" />
+                            <button 
+                              type="button" 
+                              onClick={() => removeImage('away')}
+                              className="logo-remove"
+                              title="Supprimer le logo"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
@@ -453,21 +468,79 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
               
               <div className="modal-footer">
                 <button 
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={closeModals}
                   className="secondary"
                 >
                   Annuler
                 </button>
                 <button 
-                  onClick={handleCreateMatch}
+                  onClick={handleSubmit}
                   className="primary"
                   disabled={!form.name.trim()}
                 >
-                  ✅ Créer le match
+                  {isEditing ? '✅ Sauvegarder' : '✅ Créer le match'}
                 </button>
               </div>
             </div>
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Composant pour afficher une ligne de match
+function MatchRow({ match, onSelect, onEdit, onDelete, archived = false }: {
+  match: MatchInfo;
+  onSelect: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  archived?: boolean;
+}) {
+  return (
+    <div className={`match-row ${archived ? 'archived' : ''}`}>
+      <div className="match-details">
+        <div className="match-name">{match.name}</div>
+        <div className="match-teams">
+          {(match as any).home_logo && (
+            <img src={(match as any).home_logo} alt="Logo" className="team-logo-small" />
+          )}
+          {match.home_name} vs {match.away_name}
+          {(match as any).away_logo && (
+            <img src={(match as any).away_logo} alt="Logo" className="team-logo-small" />
+          )}
+        </div>
+        <div className="match-sport">
+          <span className="sport-badge">{match.sport}</span>
+        </div>
+      </div>
+      <div className="match-datetime">
+        <div className="match-date">{new Date(match.scheduled_at).toLocaleDateString('fr-FR')}</div>
+        <div className="match-time">{new Date(match.scheduled_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+      </div>
+      <div className="match-actions">
+        <button 
+          onClick={onSelect} 
+          className={archived ? '' : 'primary'}
+          style={archived ? { background: '#6b7280', borderColor: '#6b7280' } : {}}
+        >
+          Sélectionner
+        </button>
+        {!archived && onEdit && (
+          <button 
+            onClick={onEdit} 
+            style={{ background: '#f59e0b', borderColor: '#f59e0b', color: 'white' }}
+          >
+            ✏️ Modifier
+          </button>
+        )}
+        {!archived && onDelete && (
+          <button 
+            onClick={onDelete} 
+            className="danger"
+          >
+            🗑️ Supprimer
+          </button>
         )}
       </div>
     </div>

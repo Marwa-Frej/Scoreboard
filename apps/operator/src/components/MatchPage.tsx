@@ -14,6 +14,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
   const [state, setState] = useState<MatchState | null>(null);
   const [chan, setChan] = useState<any>(null);
   const [displayUrl, setDisplayUrl] = useState<string>('');
+  const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
 
   useEffect(() => {
     const key = `${match.org_id}:${match.id}`;
@@ -26,10 +27,14 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
       match.org_slug || 'org', 
       match.id, 
       match.display_token, 
-      () => { 
+      () => {
+        console.log('Display demande l\'état du match');
+        setConnectionStatus('Display connecté');
         if (newState) c.publish(newState, match); 
       }, 
-      () => { 
+      () => {
+        console.log('Canal opérateur connecté');
+        setConnectionStatus('Canal prêt');
         if (newState) c.publish(newState, match); 
       }
     );
@@ -39,6 +44,8 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     u.searchParams.set('org', match.org_slug || 'org'); 
     u.searchParams.set('match', match.id); 
     u.searchParams.set('token', match.display_token); 
+    u.searchParams.set('home', match.home_name);
+    u.searchParams.set('away', match.away_name);
     u.searchParams.set('ui', '1'); 
     setDisplayUrl(u.toString());
 
@@ -57,6 +64,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     if (!state || !chan) return;
     const next = reduce(state, { type, payload });
     setState(next);
+    console.log('Envoi état vers Display:', { type, payload, state: next });
     chan.publish(next, match);
   }
 
@@ -128,6 +136,9 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
         {displayUrl && (
           <div className="display-link">
             <div className="small">
+              <div style={{ marginBottom: '8px' }}>
+                <strong>Statut :</strong> <span style={{ color: connectionStatus.includes('connecté') || connectionStatus.includes('prêt') ? '#4ade80' : '#fbbf24' }}>{connectionStatus}</span>
+              </div>
               <strong>Lien Display :</strong> 
               <a href={displayUrl} target="_blank" rel="noopener noreferrer">
                 {displayUrl}

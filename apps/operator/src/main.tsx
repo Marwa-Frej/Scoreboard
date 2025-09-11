@@ -189,59 +189,90 @@ function App() {
 }
 
 function Login() {
-  const [email, setEmail] = useState('operator@example.com');
-  const [password, setPassword] = useState('demo-demo');
+  const [email, setEmail] = useState('gilles.guerrin49@gmail.com');
+  const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'signin'|'signup'>('signin');
   const [msg, setMsg] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   
   async function submit() {
+    if (!email.trim() || !password.trim()) {
+      setMsg('Veuillez remplir tous les champs');
+      return;
+    }
+    
     setSubmitting(true);
     setMsg('');
     
     try {
       if (mode === 'signin') {
+        console.log('🔐 Tentative de connexion pour:', email);
         const { error } = await supa.auth.signInWithPassword({ email, password });
         if (error) {
+          console.error('❌ Erreur de connexion:', error);
           setMsg(`Erreur: ${error.message}`);
+        } else {
+          console.log('✅ Connexion réussie');
         }
       } else {
+        console.log('📝 Tentative d\'inscription pour:', email);
         const { error } = await supa.auth.signUp({ email, password });
-        setMsg(error ? `Erreur: ${error.message}` : 'Vérifiez vos emails');
+        if (error) {
+          console.error('❌ Erreur d\'inscription:', error);
+          setMsg(`Erreur: ${error.message}`);
+        } else {
+          console.log('✅ Inscription réussie');
+          setMsg('Compte créé ! Vous pouvez maintenant vous connecter.');
+          setMode('signin');
+        }
       }
     } catch (err) {
+      console.error('💥 Erreur inattendue:', err);
       setMsg(`Erreur: ${err instanceof Error ? err.message : 'Inconnue'}`);
     }
     
     setSubmitting(false);
+  }
+
+  function handleKeyPress(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !submitting) {
+      submit();
+    }
   }
   
   return (
     <div className="space-page" style={{display:'grid', placeItems:'center', minHeight:'100vh'}}>
       <div className="card" style={{width:360}}>
         <h2 className="h1">🎮 Connexion Opérateur</h2>
+        <div className="small" style={{marginBottom:'16px', color:'#9aa0a6', textAlign:'center'}}>
+          Utilisez votre compte Supabase ou créez-en un nouveau
+        </div>
         <div className="col">
           <input 
             className="input" 
             value={email} 
             onChange={e=>setEmail(e.target.value)} 
+            onKeyPress={handleKeyPress}
             placeholder="Email"
             type="email"
             disabled={submitting}
+            autoComplete="email"
           />
           <input 
             className="input" 
             type="password" 
             value={password} 
             onChange={e=>setPassword(e.target.value)} 
+            onKeyPress={handleKeyPress}
             placeholder="Mot de passe"
             disabled={submitting}
+            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
           />
           <div className="row">
             <button 
               onClick={submit} 
               className="primary" 
-              disabled={submitting}
+              disabled={submitting || !email.trim() || !password.trim()}
               style={{flex: 1}}
             >
               {submitting ? 'Connexion...' : (mode==='signin'?'Se connecter':'Créer un compte')}
@@ -256,10 +287,31 @@ function Login() {
               {mode==='signin'?'Créer un compte':'J\'ai déjà un compte'}
             </button>
           </div>
+          
+          {/* Aide pour les utilisateurs */}
+          <div className="small" style={{marginTop:'16px', color:'#6b7280', textAlign:'center'}}>
+            {mode === 'signin' ? (
+              <>
+                💡 <strong>Compte de test :</strong><br/>
+                Email: gilles.guerrin49@gmail.com<br/>
+                (Créez votre mot de passe si première connexion)
+              </>
+            ) : (
+              <>
+                📝 <strong>Nouveau compte :</strong><br/>
+                Entrez votre email et choisissez un mot de passe
+              </>
+            )}
+          </div>
+          
           {msg && <div className="small" style={{
             color: msg.includes('Erreur') ? '#ff6b6b' : '#4ade80',
             textAlign: 'center',
-            marginTop: '8px'
+            marginTop: '12px',
+            padding: '8px',
+            background: msg.includes('Erreur') ? 'rgba(255, 107, 107, 0.1)' : 'rgba(74, 222, 128, 0.1)',
+            borderRadius: '6px',
+            border: `1px solid ${msg.includes('Erreur') ? 'rgba(255, 107, 107, 0.3)' : 'rgba(74, 222, 128, 0.3)'}`
           }}>{msg}</div>}
         </div>
       </div>

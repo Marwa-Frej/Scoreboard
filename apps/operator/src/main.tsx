@@ -111,53 +111,55 @@ function App(){
   const [currentPage, setCurrentPage] = useState<'space' | 'match'>('space');
   const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
   const [error, setError] = useState<string>('');
-  const [envError, setEnvError] = useState<string>('');
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   // Vérifier la configuration au démarrage
   useEffect(() => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     
-    if (!supabaseUrl || !supabaseKey) {
-      setEnvError('Configuration Supabase manquante. Veuillez configurer le fichier .env avec VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY');
-      return;
-    }
+    console.log('🔧 Configuration Supabase:', {
+      url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'MANQUANT',
+      key: supabaseKey ? `${supabaseKey.substring(0, 30)}...` : 'MANQUANT'
+    });
     
-    if (supabaseUrl.includes('your_supabase') || supabaseKey.includes('your_supabase')) {
-      setEnvError('Veuillez remplacer les valeurs d\'exemple dans le fichier .env par vos vraies clés Supabase');
-      return;
-    }
+    setDebugInfo(`URL: ${supabaseUrl ? 'OK' : 'MANQUANT'}, KEY: ${supabaseKey ? 'OK' : 'MANQUANT'}`);
   }, []);
 
   useEffect(() => { 
+    console.log('👤 Utilisateur:', user ? `${user.email} (${user.id})` : 'Non connecté');
     if (!user) return;
     
     async function loadUserData() {
       try {
+        console.log('📊 Chargement des organisations...');
         const { data: orgs, error: orgError } = await supa
           .from('org_members_with_org')
           .select('*')
           .eq('user_id', user.id);
         
         if (orgError) {
-          console.error('Error loading orgs:', orgError);
+          console.error('❌ Erreur chargement orgs:', orgError);
           setError(`Erreur de chargement des organisations: ${orgError.message}`);
           return;
         }
         
+        console.log('🏢 Organisations trouvées:', orgs);
         setOrgs(orgs || []);
         if (orgs && orgs.length > 0) {
           const userOrg = orgs[0];
+          console.log('✅ Organisation sélectionnée:', userOrg);
           setOrg({ 
             id: userOrg.org_id, 
             slug: userOrg.org_slug, 
             name: userOrg.org_name || userOrg.name 
           });
         } else {
+          console.warn('⚠️ Aucune organisation trouvée');
           setError('Aucune organisation trouvée pour cet utilisateur');
         }
       } catch (err) {
-        console.error('Unexpected error:', err);
+        console.error('💥 Erreur inattendue:', err);
         setError(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
       }
     }
@@ -166,10 +168,12 @@ function App(){
   }, [user]);
 
   useEffect(() => { 
+    console.log('🎯 Organisation actuelle:', org);
     if (!org?.id) return;
     
     async function loadMatches() {
       try {
+        console.log('⚽ Chargement des matchs pour org:', org.id);
         const { data, error } = await supa
           .from('matches')
           .select('*')
@@ -177,14 +181,15 @@ function App(){
           .order('scheduled_at');
         
         if (error) {
-          console.error('Error loading matches:', error);
+          console.error('❌ Erreur chargement matchs:', error);
           setError(`Erreur de chargement des matchs: ${error.message}`);
           return;
         }
         
+        console.log('📋 Matchs trouvés:', data);
         setMatches((data as any) || []);
       } catch (err) {
-        console.error('Unexpected error loading matches:', err);
+        console.error('💥 Erreur inattendue matchs:', err);
         setError(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
       }
     }
@@ -208,33 +213,16 @@ function App(){
 
   // Afficher un loader pendant la vérification de l'authentification
   if (loading) {
+    console.log('⏳ Chargement de l\'authentification...');
     return (
       <div className="space-page" style={{display:'grid', placeItems:'center', minHeight:'100vh'}}>
         <div className="card" style={{width:360, textAlign:'center'}}>
-          <div className="loading">Chargement...</div>
-        </div>
-      </div>
-    );
-  }
-
-  // Afficher les erreurs de configuration
-  if (envError) {
-    return (
-      <div className="space-page" style={{display:'grid', placeItems:'center', minHeight:'100vh'}}>
-        <div className="card" style={{width:500, textAlign:'center'}}>
-          <h2 className="h1" style={{color:'#ff6b6b'}}>⚙️ Configuration requise</h2>
-          <div style={{color:'#ff6b6b', marginBottom:'16px', lineHeight:'1.5'}}>{envError}</div>
-          <div style={{background:'#1a1a1a', padding:'12px', borderRadius:'8px', marginBottom:'16px', textAlign:'left', fontSize:'12px', fontFamily:'monospace'}}>
-            <div>1. Créez un fichier <strong>.env</strong> à la racine du projet</div>
-            <div>2. Ajoutez vos clés Supabase :</div>
-            <div style={{marginTop:'8px', color:'#4ade80'}}>
-              VITE_SUPABASE_URL=https://votre-projet.supabase.co<br/>
-              VITE_SUPABASE_ANON_KEY=votre_clé_anon
+          <div className="loading">
+            <div>⏳ Chargement...</div>
+            <div className="small" style={{marginTop:'10px', color:'#666'}}>
+              Debug: {debugInfo}
             </div>
           </div>
-          <button onClick={() => window.location.reload()} className="primary">
-            Recharger après configuration
-          </button>
         </div>
       </div>
     );
@@ -242,11 +230,15 @@ function App(){
 
   // Afficher les erreurs
   if (error) {
+    console.log('❌ Affichage de l\'erreur:', error);
     return (
       <div className="space-page" style={{display:'grid', placeItems:'center', minHeight:'100vh'}}>
         <div className="card" style={{width:400, textAlign:'center'}}>
           <h2 className="h1" style={{color:'#ff6b6b'}}>Erreur</h2>
           <div style={{color:'#ff6b6b', marginBottom:'16px'}}>{error}</div>
+          <div className="small" style={{marginBottom:'16px', color:'#666'}}>
+            Debug: {debugInfo}
+          </div>
           <button onClick={() => window.location.reload()} className="primary">
             Recharger la page
           </button>
@@ -256,7 +248,13 @@ function App(){
   }
 
   // Afficher la page de connexion si pas d'utilisateur
-  if (!user) return <Login />;
+  if (!user) {
+    console.log('🔐 Affichage de la page de connexion');
+    return <Login />;
+  }
+
+  console.log('✅ Affichage de l\'interface principale');
+  console.log('📊 État actuel:', { user: user?.email, org: org?.name, matchesCount: matches.length, currentPage });
 
   // Navigation entre les pages
   if (currentPage === 'match' && selectedMatch) {

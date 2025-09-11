@@ -135,7 +135,7 @@ function App(){
   const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
   const [error, setError] = useState<string>('');
 
-  // Vérifier la configuration au démarrage
+  // Vérifier la configuration au démarrage (une seule fois)
   useEffect(() => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -149,11 +149,17 @@ function App(){
       console.error('❌ Config - Variables d\'environnement manquantes');
       setError('Configuration Supabase manquante dans le fichier .env');
     }
-  }, []);
+  }, []); // Dépendances vides pour n'exécuter qu'une fois
 
+  // Charger les organisations quand l'utilisateur change
   useEffect(() => { 
     console.log('👤 User Effect - Utilisateur:', user ? `${user.email} (${user.id})` : 'Non connecté');
-    if (!user) return;
+    if (!user) {
+      setOrgs([]);
+      setOrg(null);
+      setMatches([]);
+      return;
+    }
     
     async function loadUserData() {
       try {
@@ -190,11 +196,15 @@ function App(){
     }
     
     loadUserData();
-  }, [user]);
+  }, [user?.id]); // Dépendance spécifique sur l'ID utilisateur
 
+  // Charger les matchs quand l'organisation change
   useEffect(() => { 
     console.log('🎯 Org Effect - Organisation actuelle:', org);
-    if (!org?.id) return;
+    if (!org?.id) {
+      setMatches([]);
+      return;
+    }
     
     async function loadMatches() {
       try {
@@ -220,7 +230,7 @@ function App(){
     }
     
     loadMatches();
-  }, [org]);
+  }, [org?.id]); // Dépendance spécifique sur l'ID organisation
 
   function handleMatchSelect(match: MatchInfo) {
     console.log('🎯 Navigation - Sélection du match:', match.name);

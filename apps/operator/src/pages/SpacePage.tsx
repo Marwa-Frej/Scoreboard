@@ -287,14 +287,47 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
         <h2 className="h1">Matchs à venir ({upcomingMatches.length})</h2>
         <div className="matches-list">
           {upcomingMatches.map(m => (
-            <MatchRow 
-              key={m.id} 
-              match={m} 
-             index={index}
-              onSelect={() => onMatchSelect(m)}
-              onEdit={() => openEditModal(m)}
-              onDelete={() => deleteMatch(m.id)}
-            />
+            <div key={m.id} className="match-row">
+              <div className="match-details">
+                <div className="match-name">{m.name}</div>
+                <div className="match-teams">
+                  {(m as any).home_logo && (
+                    <img src={(m as any).home_logo} alt="Logo" className="team-logo-small" />
+                  )}
+                  {m.home_name} vs {m.away_name}
+                  {(m as any).away_logo && (
+                    <img src={(m as any).away_logo} alt="Logo" className="team-logo-small" />
+                  )}
+                </div>
+                <div className="match-sport">
+                  <span className="sport-badge">{m.sport}</span>
+                </div>
+              </div>
+              <div className="match-datetime">
+                <div className="match-date">{new Date(m.scheduled_at).toLocaleDateString('fr-FR')}</div>
+                <div className="match-time">{new Date(m.scheduled_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+              </div>
+              <div className="match-actions">
+                <button 
+                  onClick={() => onMatchSelect(m)} 
+                  className="primary"
+                >
+                  Sélectionner
+                </button>
+                <button 
+                  onClick={() => openEditModal(m)} 
+                  style={{ background: '#f59e0b', borderColor: '#f59e0b', color: 'white' }}
+                >
+                  ✏️ Modifier
+                </button>
+                <button 
+                  onClick={() => deleteMatch(m.id)} 
+                  className="danger"
+                >
+                  🗑️ Supprimer
+                </button>
+              </div>
+            </div>
           ))}
           {upcomingMatches.length === 0 && (
             <div className="empty-list">
@@ -310,13 +343,24 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
             <h2 className="h1">Matchs archivés ({archivedMatches.length})</h2>
             <div className="matches-list archived">
               {archivedMatches.map(m => (
-                <MatchRow 
-                  key={m.id} 
-                  match={m} 
-                 index={index}
-                  onSelect={() => onMatchSelect(m)}
-                  archived={true}
-                />
+                <div key={m.id} className="match-row archived">
+                  <div className="match-details">
+                    <div className="match-name">{m.name}</div>
+                    <div className="match-teams">{m.home_name} vs {m.away_name}</div>
+                  </div>
+                  <div className="match-datetime">
+                    <div className="match-date">{new Date(m.scheduled_at).toLocaleDateString('fr-FR')}</div>
+                    <div className="match-time">{new Date(m.scheduled_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+                  </div>
+                  <div className="match-actions">
+                    <button 
+                      onClick={() => onMatchSelect(m)} 
+                      style={{ background: '#6b7280', borderColor: '#6b7280' }}
+                    >
+                      Sélectionner
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           </>
@@ -477,65 +521,6 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
               </div>
             </div>
           </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Composant pour afficher une ligne de match
-function MatchRow({ match, onSelect, onEdit, onDelete, archived = false }: {
-  match: MatchInfo;
- index: number;
-  onSelect: () => void;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  archived?: boolean;
-}) {
-  return (
-    <div className={`match-row ${archived ? 'archived' : ''} ${index % 2 === 1 ? 'alternate' : ''}`}>
-      <div className="match-details">
-        <div className="match-name">{match.name}</div>
-        <div className="match-teams">
-          {(match as any).home_logo && (
-            <img src={(match as any).home_logo} alt="Logo" className="team-logo-small" />
-          )}
-          {match.home_name} vs {match.away_name}
-          {(match as any).away_logo && (
-            <img src={(match as any).away_logo} alt="Logo" className="team-logo-small" />
-          )}
-        </div>
-        <div className="match-sport">
-          <span className="sport-badge">{match.sport}</span>
-        </div>
-      </div>
-      <div className="match-datetime">
-        <div className="match-date">{new Date(match.scheduled_at).toLocaleDateString('fr-FR')}</div>
-        <div className="match-time">{new Date(match.scheduled_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
-      </div>
-      <div className="match-actions">
-        <button 
-          onClick={onSelect} 
-          className={archived ? '' : 'primary'}
-          style={archived ? { background: '#6b7280', borderColor: '#6b7280' } : {}}
-        >
-          Sélectionner
-        </button>
-        {!archived && onEdit && (
-          <button 
-            onClick={onEdit} 
-            style={{ background: '#f59e0b', borderColor: '#f59e0b', color: 'white' }}
-          >
-            ✏️ Modifier
-          </button>
-        )}
-        {!archived && onDelete && (
-          <button 
-            onClick={onDelete} 
-            className="danger"
-          >
-            🗑️ Supprimer
-          </button>
         )}
       </div>
     </div>

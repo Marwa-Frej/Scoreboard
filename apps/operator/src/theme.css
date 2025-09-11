@@ -435,18 +435,6 @@ iframe{ width:100%; height:100%; border:0; background:black } .sep{ height:8px }
   border-color: #1a1a1a;
 }
 
-.match-row.alternate {
-  background: #0f1114;
-}
-
-.match-row.alternate:hover {
-  background: #121518;
-}
-
-.match-row.archived.alternate {
-  background: #0d0d0d;
-}
-
 .match-details {
   flex: 1;
   min-width: 0;

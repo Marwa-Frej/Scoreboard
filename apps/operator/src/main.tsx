@@ -6,13 +6,24 @@ import { supa } from './supabase';
 import { SpacePage } from './components/SpacePage';
 import { MatchPage } from './components/MatchPage';
 
+function useAuth() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
     supa.auth.getUser().then(r=>{
       setUser(r.data.user||null);
       setLoading(false);
-    }); 
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  useEffect(()=>{ supa.auth.getUser().then(r=>setUser(r.data.user||null)); const { data: { subscription } } = supa.auth.onAuthStateChange((_e, s)=> setUser(s?.user||null)); return ()=>subscription.unsubscribe(); }, []);
+    });
+    
+    const { data: { subscription } } = supa.auth.onAuthStateChange((_e, s) => {
+      setUser(s?.user || null);
+      setLoading(false);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
+  
   return { user, loading };
 }
 

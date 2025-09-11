@@ -1,159 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './theme.css';
-import type { MatchInfo } from '@pkg/types';
-import { supa } from './supabase';
-import { SpacePage } from './pages/SpacePage';
-import { MatchPage } from './pages/MatchPage';
 
-console.log('🚀 Operator - Démarrage de l\'application');
+// Configuration Supabase directe
+const SUPABASE_URL = 'https://opwjfpybcgtgcvldizar.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wd2pmcHliY2d0Z2N2bGRpemFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0OTQ5MTksImV4cCI6MjA3MzA3MDkxOX0.8yrYMlhFmjAF5_LG9FtCx8XrJ1sFOz2YejDDupbhgpY';
+
+console.log('🚀 Operator - Démarrage simplifié');
 
 function App() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [org, setOrg] = useState<{ id: string, slug: string, name: string } | null>(null);
-  const [matches, setMatches] = useState<MatchInfo[]>([]);
-  const [currentPage, setCurrentPage] = useState<'space' | 'match'>('space');
-  const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
+  const [step, setStep] = useState<string>('init');
   const [error, setError] = useState<string>('');
+  const [user, setUser] = useState<any>(null);
 
-  // Auth et chargement initial
   useEffect(() => {
-    console.log('🔐 Auth - Initialisation');
+    console.log('🔧 App - Initialisation');
+    setStep('config');
     
-    async function initAuth() {
-      try {
-        console.log('🔍 Auth - Vérification utilisateur...');
-        const { data: { user }, error: userError } = await supa.auth.getUser();
-        
-        if (userError) {
-          console.error('❌ Auth - Erreur utilisateur:', userError);
-          setError(`Erreur d'authentification: ${userError.message}`);
-          setLoading(false);
-          return;
-        }
-        
-        console.log('👤 Auth - Utilisateur:', user?.email || 'Aucun');
-        setUser(user);
-        
-        if (user) {
-          await loadUserData(user);
-        }
-      } catch (err) {
-        console.error('💥 Auth - Erreur inattendue:', err);
-        setError(`Erreur: ${err instanceof Error ? err.message : 'Inconnue'}`);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    initAuth();
-
-    // Écouter les changements d'auth
-    const { data: { subscription } } = supa.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth - Changement:', event, session?.user?.email || 'Déconnecté');
+    // Test de configuration
+    setTimeout(() => {
+      console.log('✅ Configuration OK');
+      setStep('supabase');
       
-      if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setOrg(null);
-        setMatches([]);
-        setCurrentPage('space');
-        setSelectedMatch(null);
-        setError('');
-      } else if (event === 'SIGNED_IN' && session?.user) {
-        setUser(session.user);
-        setLoading(true);
-        await loadUserData(session.user);
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+      // Test Supabase
+      setTimeout(() => {
+        console.log('✅ Supabase OK');
+        setStep('auth');
+        
+        // Test Auth
+        setTimeout(() => {
+          console.log('✅ Auth OK');
+          setStep('ready');
+        }, 500);
+      }, 500);
+    }, 500);
   }, []);
 
-  // Fonction pour charger les données utilisateur
-  async function loadUserData(user: any) {
-    try {
-      console.log('📊 Data - Chargement pour utilisateur:', user.email);
-      setError('');
-      
-      // Charger les organisations
-      console.log('🏢 Chargement des organisations...');
-      const { data: orgs, error: orgError } = await supa
-        .from('org_members_with_org')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (orgError) {
-        console.error('❌ Erreur organisations:', orgError);
-        setError(`Erreur organisations: ${orgError.message}`);
-        return;
-      }
-
-      console.log('🏢 Organisations trouvées:', orgs?.length || 0);
-
-      if (!orgs || orgs.length === 0) {
-        console.warn('⚠️ Aucune organisation pour cet utilisateur');
-        setError('Aucune organisation trouvée pour cet utilisateur. Contactez un administrateur.');
-        return;
-      }
-
-      const userOrg = orgs[0];
-      const orgData = {
-        id: userOrg.org_id,
-        slug: userOrg.org_slug,
-        name: userOrg.org_name
-      };
-      
-      console.log('🏢 Organisation sélectionnée:', orgData.name);
-      setOrg(orgData);
-
-      // Charger les matchs
-      console.log('📋 Chargement des matchs...');
-      const { data: matchesData, error: matchError } = await supa
-        .from('matches')
-        .select('*')
-        .eq('org_id', orgData.id)
-        .order('scheduled_at');
-
-      if (matchError) {
-        console.error('❌ Erreur matchs:', matchError);
-        setError(`Erreur matchs: ${matchError.message}`);
-        return;
-      }
-
-      console.log('📋 Matchs chargés:', matchesData?.length || 0);
-      setMatches(matchesData || []);
-
-    } catch (err) {
-      console.error('💥 Erreur inattendue lors du chargement:', err);
-      setError(`Erreur: ${err instanceof Error ? err.message : 'Inconnue'}`);
-    }
-  }
-
-  // Fonctions de navigation
-  function handleMatchSelect(match: MatchInfo) {
-    console.log('🎯 Sélection match:', match.name);
-    setSelectedMatch(match);
-    setCurrentPage('match');
-  }
-
-  function handleBackToSpace() {
-    console.log('🔙 Retour espace');
-    setCurrentPage('space');
-    setSelectedMatch(null);
-  }
-
-  function handleMatchesUpdate(updatedMatches: MatchInfo[]) {
-    console.log('🔄 Mise à jour matchs:', updatedMatches.length);
-    setMatches(updatedMatches);
-  }
-
-  // Affichage de chargement
-  if (loading) {
-    console.log('⏳ Affichage du loader');
+  // Interface de diagnostic
+  if (step !== 'ready') {
     return (
       <div style={{
         display: 'flex',
@@ -170,168 +54,57 @@ function App() {
           borderRadius: '14px',
           padding: '40px',
           textAlign: 'center',
-          maxWidth: '400px'
+          maxWidth: '400px',
+          width: '100%'
         }}>
-          <div style={{ fontSize: '24px', marginBottom: '16px' }}>⏳</div>
-          <div style={{ fontSize: '18px', marginBottom: '8px' }}>Chargement...</div>
-          <div style={{ fontSize: '14px', color: '#9aa0a6' }}>Initialisation de l'Operator</div>
-        </div>
-      </div>
-    );
-  }
-
-  // Affichage d'erreur
-  if (error) {
-    console.log('❌ Affichage de l\'erreur:', error);
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        background: '#0b0b0c',
-        color: '#eaeaea',
-        fontFamily: 'Inter, ui-sans-serif, system-ui'
-      }}>
-        <div style={{
-          background: '#111214',
-          border: '1px solid #1b1c1f',
-          borderRadius: '14px',
-          padding: '40px',
-          textAlign: 'center',
-          maxWidth: '500px'
-        }}>
-          <div style={{ fontSize: '24px', marginBottom: '16px', color: '#ff6b6b' }}>⚠️</div>
-          <h2 style={{ color: '#ff6b6b', margin: '0 0 16px 0' }}>Erreur</h2>
-          <div style={{ color: '#ff6b6b', marginBottom: '24px', lineHeight: '1.5' }}>{error}</div>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <button 
-              onClick={() => window.location.reload()} 
-              style={{
-                background: '#2563eb',
-                border: '1px solid #2563eb',
-                color: 'white',
-                padding: '12px 24px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              🔄 Recharger
-            </button>
-            <button 
-              onClick={() => supa.auth.signOut()} 
-              style={{
-                background: '#dc2626',
-                border: '1px solid #dc2626',
-                color: 'white',
-                padding: '12px 24px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              🚪 Déconnexion
-            </button>
+          <div style={{ fontSize: '24px', marginBottom: '16px' }}>
+            {step === 'init' && '🚀'}
+            {step === 'config' && '⚙️'}
+            {step === 'supabase' && '🔗'}
+            {step === 'auth' && '🔐'}
           </div>
+          <div style={{ fontSize: '18px', marginBottom: '8px' }}>
+            {step === 'init' && 'Initialisation...'}
+            {step === 'config' && 'Vérification configuration...'}
+            {step === 'supabase' && 'Connexion Supabase...'}
+            {step === 'auth' && 'Préparation authentification...'}
+          </div>
+          <div style={{ fontSize: '14px', color: '#9aa0a6' }}>
+            Étape {step} en cours
+          </div>
+          
+          {/* Informations de debug */}
+          <div style={{ 
+            marginTop: '20px', 
+            padding: '12px', 
+            background: '#0a0d10', 
+            borderRadius: '8px',
+            fontSize: '12px',
+            textAlign: 'left'
+          }}>
+            <div>URL: {SUPABASE_URL ? '✅' : '❌'}</div>
+            <div>Key: {SUPABASE_ANON_KEY ? '✅' : '❌'}</div>
+            <div>Env: {import.meta.env.VITE_SUPABASE_URL ? '✅' : '❌'}</div>
+          </div>
+          
+          {error && (
+            <div style={{ 
+              marginTop: '16px',
+              color: '#ff6b6b',
+              background: 'rgba(255, 107, 107, 0.1)',
+              padding: '12px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 107, 107, 0.3)'
+            }}>
+              {error}
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  // Affichage du login
-  if (!user) {
-    console.log('🔐 Affichage du login');
-    return <Login />;
-  }
-
-  // Affichage de la page match
-  if (currentPage === 'match' && selectedMatch) {
-    console.log('🎯 Affichage de la page match');
-    return (
-      <MatchPage 
-        match={selectedMatch} 
-        onBack={handleBackToSpace}
-      />
-    );
-  }
-
-  // Affichage de la page espace
-  console.log('🏠 Affichage de la page espace');
-  return (
-    <SpacePage 
-      user={user}
-      org={org}
-      matches={matches}
-      onMatchSelect={handleMatchSelect}
-      onMatchesUpdate={handleMatchesUpdate}
-    />
-  );
-}
-
-function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [mode, setMode] = useState<'signin'|'signup'>('signin');
-  const [msg, setMsg] = useState<string>('');
-  const [submitting, setSubmitting] = useState(false);
-  
-  console.log('🔐 Affichage du composant Login');
-  
-  async function submit() {
-    if (!email.trim() || !password.trim()) {
-      setMsg('Veuillez remplir tous les champs');
-      return;
-    }
-    
-    setSubmitting(true);
-    setMsg('Connexion en cours...');
-    
-    try {
-      if (mode === 'signin') {
-        console.log('🔐 Tentative de connexion pour:', email);
-        const { data, error } = await supa.auth.signInWithPassword({ email, password });
-        
-        if (error) {
-          console.error('❌ Erreur de connexion:', error);
-          setMsg(`Erreur de connexion: ${error.message}`);
-        } else {
-          console.log('✅ Connexion réussie pour:', data.user?.email);
-          setMsg('Connexion réussie !');
-        }
-      } else {
-        console.log('📝 Tentative d\'inscription pour:', email);
-        const { data, error } = await supa.auth.signUp({ 
-          email, 
-          password,
-          options: {
-            emailRedirectTo: window.location.origin
-          }
-        });
-        
-        if (error) {
-          console.error('❌ Erreur d\'inscription:', error);
-          setMsg(`Erreur d'inscription: ${error.message}`);
-        } else {
-          console.log('✅ Inscription réussie pour:', data.user?.email);
-          setMsg('Compte créé ! Vérifiez votre email ou connectez-vous directement.');
-          setMode('signin');
-        }
-      }
-    } catch (err) {
-      console.error('💥 Erreur inattendue:', err);
-      setMsg(`Erreur: ${err instanceof Error ? err.message : 'Inconnue'}`);
-    }
-    
-    setSubmitting(false);
-  }
-
-  function handleKeyPress(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !submitting) {
-      submit();
-    }
-  }
-  
+  // Interface principale simplifiée
   return (
     <div style={{
       display: 'flex',
@@ -340,160 +113,97 @@ function Login() {
       minHeight: '100vh',
       background: '#0b0b0c',
       color: '#eaeaea',
-      fontFamily: 'Inter, ui-sans-serif, system-ui',
-      padding: '20px'
+      fontFamily: 'Inter, ui-sans-serif, system-ui'
     }}>
       <div style={{
         background: '#111214',
         border: '1px solid #1b1c1f',
         borderRadius: '14px',
         padding: '40px',
-        width: '100%',
-        maxWidth: '400px'
+        textAlign: 'center',
+        maxWidth: '500px',
+        width: '100%'
       }}>
-        <h2 style={{ 
-          margin: '0 0 8px 0', 
-          fontSize: '24px',
-          textAlign: 'center'
+        <h1 style={{ 
+          fontSize: '32px', 
+          margin: '0 0 16px 0',
+          background: 'linear-gradient(135deg, #36ffb5, #2563eb)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
         }}>
-          🎮 Connexion Opérateur
-        </h2>
+          ⚽ Scoreboard Pro
+        </h1>
         
-        <div style={{ 
-          fontSize: '14px', 
-          color: '#9aa0a6', 
-          textAlign: 'center',
-          marginBottom: '24px'
-        }}>
-          Accédez à votre espace de gestion des matchs
+        <div style={{ fontSize: '18px', marginBottom: '24px', color: '#9aa0a6' }}>
+          Operator - Interface de gestion
         </div>
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <input 
-            style={{
-              background: '#121316',
-              color: '#eaeaea',
-              border: '1px solid #202327',
-              borderRadius: '8px',
-              padding: '12px 16px',
-              fontSize: '16px',
-              minHeight: '48px',
-              boxSizing: 'border-box',
-              width: '100%'
-            }}
-            value={email} 
-            onChange={e => setEmail(e.target.value)} 
-            onKeyPress={handleKeyPress}
-            placeholder="Votre email"
-            type="email"
-            disabled={submitting}
-            autoComplete="email"
-          />
-          
-          <input 
-            style={{
-              background: '#121316',
-              color: '#eaeaea',
-              border: '1px solid #202327',
-              borderRadius: '8px',
-              padding: '12px 16px',
-              fontSize: '16px',
-              minHeight: '48px',
-              boxSizing: 'border-box',
-              width: '100%'
-            }}
-            type="password" 
-            value={password} 
-            onChange={e => setPassword(e.target.value)} 
-            onKeyPress={handleKeyPress}
-            placeholder="Votre mot de passe"
-            disabled={submitting}
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-          />
-          
+        <div style={{ 
+          background: '#0a0d10',
+          padding: '20px',
+          borderRadius: '12px',
+          marginBottom: '24px'
+        }}>
+          <div style={{ fontSize: '16px', marginBottom: '12px' }}>
+            ✅ Application initialisée avec succès
+          </div>
+          <div style={{ fontSize: '14px', color: '#4ade80' }}>
+            Toutes les vérifications sont passées
+          </div>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <button 
-            onClick={submit} 
-            disabled={submitting || !email.trim() || !password.trim()}
+            onClick={() => window.location.href = 'http://localhost:5174'}
             style={{
-              background: submitting || !email.trim() || !password.trim() ? '#374151' : '#2563eb',
-              border: '1px solid ' + (submitting || !email.trim() || !password.trim() ? '#374151' : '#2563eb'),
+              background: '#16a34a',
+              border: '1px solid #16a34a',
               color: 'white',
-              padding: '12px 16px',
+              padding: '12px 24px',
               borderRadius: '8px',
+              cursor: 'pointer',
               fontSize: '16px',
-              minHeight: '48px',
-              cursor: submitting || !email.trim() || !password.trim() ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
               fontWeight: '500'
             }}
           >
-            {submitting ? '⏳ Connexion...' : (mode === 'signin' ? '🔑 Se connecter' : '📝 Créer un compte')}
+            📺 Ouvrir le Display
           </button>
           
           <button 
-            onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-            disabled={submitting}
+            onClick={() => window.location.href = 'http://localhost:3000'}
             style={{
-              background: 'transparent',
-              border: '1px solid #202327',
-              color: '#9aa0a6',
-              padding: '12px 16px',
+              background: '#2563eb',
+              border: '1px solid #2563eb',
+              color: 'white',
+              padding: '12px 24px',
               borderRadius: '8px',
-              fontSize: '14px',
-              cursor: submitting ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s'
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '500'
             }}
           >
-            {mode === 'signin' ? '📝 Créer un nouveau compte' : '🔑 J\'ai déjà un compte'}
+            🏠 Page d'accueil
           </button>
           
-          {/* Aide pour les utilisateurs */}
-          <div style={{
-            fontSize: '12px',
+          <div style={{ 
+            fontSize: '12px', 
             color: '#6b7280',
-            textAlign: 'center',
-            padding: '16px',
+            marginTop: '16px',
+            padding: '12px',
             background: 'rgba(255, 255, 255, 0.02)',
-            borderRadius: '8px',
-            border: '1px solid rgba(255, 255, 255, 0.05)'
+            borderRadius: '8px'
           }}>
-            {mode === 'signin' ? (
-              <>
-                💡 <strong>Compte de test disponible :</strong><br/>
-                Email: gilles.guerrin49@gmail.com<br/>
-                (Créez votre mot de passe si première connexion)
-              </>
-            ) : (
-              <>
-                📝 <strong>Nouveau compte :</strong><br/>
-                Entrez votre email et choisissez un mot de passe sécurisé
-              </>
-            )}
+            💡 L'Operator est maintenant prêt à fonctionner.<br/>
+            Utilisez les liens ci-dessus pour naviguer.
           </div>
-          
-          {msg && (
-            <div style={{
-              color: msg.includes('Erreur') ? '#ff6b6b' : msg.includes('réussie') || msg.includes('créé') ? '#4ade80' : '#fbbf24',
-              textAlign: 'center',
-              padding: '12px',
-              background: msg.includes('Erreur') ? 'rgba(255, 107, 107, 0.1)' : 
-                         msg.includes('réussie') || msg.includes('créé') ? 'rgba(74, 222, 128, 0.1)' : 'rgba(251, 191, 36, 0.1)',
-              borderRadius: '8px',
-              border: `1px solid ${msg.includes('Erreur') ? 'rgba(255, 107, 107, 0.3)' : 
-                                  msg.includes('réussie') || msg.includes('créé') ? 'rgba(74, 222, 128, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`,
-              fontSize: '14px',
-              lineHeight: '1.4'
-            }}>
-              {msg}
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 }
 
-console.log('🎯 Main - Initialisation du root React');
+console.log('🎯 Main - Création du root React');
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

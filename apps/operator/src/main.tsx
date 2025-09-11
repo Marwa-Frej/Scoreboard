@@ -224,12 +224,15 @@ function App(){
 
   function handleMatchSelect(match: MatchInfo) {
     console.log('🎯 Navigation - Sélection du match:', match.name);
+    console.log('🎯 Navigation - Match ID:', match.id);
+    console.log('🎯 Navigation - Changement de page vers match');
     setSelectedMatch(match);
     setCurrentPage('match');
   }
 
   function handleBackToSpace() {
     console.log('🔙 Navigation - Retour à l\'espace');
+    console.log('🔙 Navigation - Changement de page vers space');
     setCurrentPage('space');
     setSelectedMatch(null);
   }

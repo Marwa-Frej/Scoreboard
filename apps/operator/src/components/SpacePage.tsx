@@ -128,6 +128,7 @@ export function SpacePage({ user, org, orgs, matches, onMatchSelect, onMatchesUp
   async function loadMatches() {
     if (!org?.id) return;
     
+    console.log('🔄 SpacePage - Rechargement des matchs demandé');
     try {
       console.log('⚽ Matches - Rechargement pour org:', org.id);
       const { data, error } = await supa

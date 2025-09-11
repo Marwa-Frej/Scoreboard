@@ -18,9 +18,12 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
   const [archiving, setArchiving] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
+  const [isUnmounting, setIsUnmounting] = useState(false);
 
   // Marquer le match comme "live" quand il est sélectionné
   useEffect(() => {
+    if (isUnmounting) return;
+    
     const markAsLive = async () => {
       try {
         const { data, error } = await supa
@@ -45,6 +48,8 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
   }, [match.id]);
 
   useEffect(() => {
+    if (isUnmounting) return;
+    
     const key = `${match.org_id}:${match.id}`;
     const newState = initMatchState(key, match.sport);
     setState(newState);
@@ -79,6 +84,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     setDisplayUrl(u.toString());
 
     return () => {
+      setIsUnmounting(true);
       // Reset du match quand on quitte la page
       const resetMatch = async () => {
         try {
@@ -96,7 +102,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
       
       if (c) c.close();
     };
-  }, [match]);
+  }, [match.id, match.org_slug, match.display_token]);
 
   useEffect(() => { 
     if (!state?.matchId) return; 
@@ -106,6 +112,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
 
   function send(type: string, payload?: any) {
     if (!state || !chan) return;
+    if (isUnmounting) return;
     
     // Détecter si le match a commencé (horloge démarrée ou score modifié)
     if (type === 'clock:start' || type.includes('score:') || type.includes('goal') || type.includes('point')) {

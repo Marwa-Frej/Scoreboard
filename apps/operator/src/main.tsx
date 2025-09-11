@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import './theme.css';
 import type { MatchInfo } from '@pkg/types';
@@ -15,23 +15,34 @@ function useAuth() {
   useEffect(() => {
     console.log('🔐 Auth - Initialisation');
     
+    let mounted = true;
+    
     supa.auth.getUser().then(r => {
-      console.log('👤 Auth - Utilisateur récupéré:', r.data.user?.email || 'Aucun');
-      setUser(r.data.user || null);
-      setLoading(false);
+      if (mounted) {
+        console.log('👤 Auth - Utilisateur récupéré:', r.data.user?.email || 'Aucun');
+        setUser(r.data.user || null);
+        setLoading(false);
+      }
     }).catch(err => {
-      console.error('❌ Auth - Erreur:', err);
-      setLoading(false);
+      if (mounted) {
+        console.error('❌ Auth - Erreur:', err);
+        setLoading(false);
+      }
     });
     
     const { data: { subscription } } = supa.auth.onAuthStateChange((_e, s) => {
-      console.log('🔄 Auth - Changement d\'état:', s?.user?.email || 'Déconnecté');
-      setUser(s?.user || null);
-      setLoading(false);
+      if (mounted) {
+        console.log('🔄 Auth - Changement d\'état:', s?.user?.email || 'Déconnecté');
+        setUser(s?.user || null);
+        setLoading(false);
+      }
     });
     
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []); // Pas de dépendances - une seule fois
   
   return { user, loading };
 }
@@ -45,7 +56,7 @@ function Login(){
   
   console.log('🔑 Login - Composant affiché');
   
-  async function submit(){
+  const submit = useCallback(async () => {
     console.log('📝 Login - Tentative de connexion:', email);
     setSubmitting(true);
     setMsg('');
@@ -68,7 +79,7 @@ function Login(){
       setMsg(`Erreur: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
     }
     setSubmitting(false);
-  }
+  }, [email, password, mode]);
   
   return (
     <div className="space-page" style={{display:'grid', placeItems:'center', minHeight:'100vh'}}>
@@ -129,37 +140,32 @@ function App(){
   
   const { user, loading } = useAuth();
   const [org, setOrg] = useState<{ id:string, slug:string, name:string }|null>(null);
-  const [orgs, setOrgs] = useState<any[]>([]);
   const [matches, setMatches] = useState<MatchInfo[]>([]);
   const [currentPage, setCurrentPage] = useState<'space' | 'match'>('space');
   const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
   const [error, setError] = useState<string>('');
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Vérifier la configuration au démarrage (une seule fois)
+  // Vérifier la configuration une seule fois
   useEffect(() => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     
-    console.log('🔧 Config - Vérification Supabase:', {
-      url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'MANQUANT',
-      key: supabaseKey ? `${supabaseKey.substring(0, 30)}...` : 'MANQUANT'
-    });
+    console.log('🔧 Config - Vérification Supabase');
     
     if (!supabaseUrl || !supabaseKey) {
       console.error('❌ Config - Variables d\'environnement manquantes');
       setError('Configuration Supabase manquante dans le fichier .env');
     }
-  }, []); // Dépendances vides pour n'exécuter qu'une fois
+  }, []); // Une seule fois
 
-  // Charger les organisations quand l'utilisateur change
-  useEffect(() => { 
-    console.log('👤 User Effect - Utilisateur:', user ? `${user.email} (${user.id})` : 'Non connecté');
-    if (!user) {
-      setOrgs([]);
-      setOrg(null);
-      setMatches([]);
-      return;
-    }
+  // Charger les données utilisateur
+  useEffect(() => {
+    if (!user?.id || dataLoaded) return;
+    
+    console.log('👤 User Effect - Chargement des données pour:', user.email);
+    
+    let mounted = true;
     
     async function loadUserData() {
       try {
@@ -169,88 +175,108 @@ function App(){
           .select('*')
           .eq('user_id', user.id);
         
+        if (!mounted) return;
+        
         if (orgError) {
           console.error('❌ Data - Erreur chargement orgs:', orgError);
           setError(`Erreur de chargement des organisations: ${orgError.message}`);
           return;
         }
         
-        console.log('🏢 Data - Organisations trouvées:', orgs);
-        setOrgs(orgs || []);
+        console.log('🏢 Data - Organisations trouvées:', orgs?.length || 0);
+        
         if (orgs && orgs.length > 0) {
           const userOrg = orgs[0];
-          console.log('✅ Data - Organisation sélectionnée:', userOrg);
-          setOrg({ 
+          console.log('✅ Data - Organisation sélectionnée:', userOrg.org_name);
+          const orgData = { 
             id: userOrg.org_id, 
             slug: userOrg.org_slug, 
             name: userOrg.org_name || userOrg.name 
-          });
+          };
+          setOrg(orgData);
+          
+          // Charger les matchs pour cette organisation
+          console.log('⚽ Matches - Chargement pour org:', orgData.id);
+          const { data: matchesData, error: matchError } = await supa
+            .from('matches')
+            .select('*')
+            .eq('org_id', orgData.id)
+            .order('scheduled_at');
+          
+          if (!mounted) return;
+          
+          if (matchError) {
+            console.error('❌ Matches - Erreur chargement:', matchError);
+            setError(`Erreur de chargement des matchs: ${matchError.message}`);
+            return;
+          }
+          
+          console.log('📋 Matches - Trouvés:', matchesData?.length || 0);
+          setMatches((matchesData as any) || []);
+          
         } else {
           console.warn('⚠️ Data - Aucune organisation trouvée');
           setError('Aucune organisation trouvée pour cet utilisateur');
         }
+        
+        setDataLoaded(true);
+        
       } catch (err) {
+        if (!mounted) return;
         console.error('💥 Data - Erreur inattendue:', err);
         setError(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
       }
     }
     
     loadUserData();
-  }, [user?.id]); // Dépendance spécifique sur l'ID utilisateur
+    
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id, dataLoaded]); // Dépendances spécifiques
 
-  // Charger les matchs quand l'organisation change
-  useEffect(() => { 
-    console.log('🎯 Org Effect - Organisation actuelle:', org);
-    if (!org?.id) {
+  // Reset quand l'utilisateur change
+  useEffect(() => {
+    if (!user) {
+      console.log('🔄 Reset - Utilisateur déconnecté');
+      setOrg(null);
       setMatches([]);
-      return;
+      setDataLoaded(false);
+      setCurrentPage('space');
+      setSelectedMatch(null);
+      setError('');
     }
-    
-    async function loadMatches() {
-      try {
-        console.log('⚽ Matches - Chargement pour org:', org.id);
-        const { data, error } = await supa
-          .from('matches')
-          .select('*')
-          .eq('org_id', org.id)
-          .order('scheduled_at');
-        
-        if (error) {
-          console.error('❌ Matches - Erreur chargement:', error);
-          setError(`Erreur de chargement des matchs: ${error.message}`);
-          return;
-        }
-        
-        console.log('📋 Matches - Trouvés:', data?.length || 0);
-        setMatches((data as any) || []);
-      } catch (err) {
-        console.error('💥 Matches - Erreur inattendue:', err);
-        setError(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
-      }
-    }
-    
-    loadMatches();
-  }, [org?.id]); // Dépendance spécifique sur l'ID organisation
+  }, [user?.id]); // Seulement quand l'ID change
 
-  function handleMatchSelect(match: MatchInfo) {
+  const handleMatchSelect = useCallback((match: MatchInfo) => {
     console.log('🎯 Navigation - Sélection du match:', match.name);
     console.log('🎯 Navigation - Match ID:', match.id);
-    console.log('🎯 Navigation - Changement de page vers match');
     setSelectedMatch(match);
     setCurrentPage('match');
-  }
+    console.log('🎯 Navigation - Changement de page vers match');
+  }, []);
 
-  function handleBackToSpace() {
+  const handleBackToSpace = useCallback(() => {
     console.log('🔙 Navigation - Retour à l\'espace');
-    console.log('🔙 Navigation - Changement de page vers space');
     setCurrentPage('space');
     setSelectedMatch(null);
-  }
+    console.log('🔙 Navigation - Changement de page vers space');
+  }, []);
 
-  function handleMatchesUpdate(updatedMatches: MatchInfo[]) {
+  const handleMatchesUpdate = useCallback((updatedMatches: MatchInfo[]) => {
     console.log('🔄 Update - Mise à jour des matchs:', updatedMatches.length);
     setMatches(updatedMatches);
-  }
+  }, []);
+
+  // Mémoriser les props pour éviter les re-rendus
+  const spacePageProps = useMemo(() => ({
+    user,
+    org,
+    orgs: org ? [org] : [],
+    matches,
+    onMatchSelect: handleMatchSelect,
+    onMatchesUpdate: handleMatchesUpdate
+  }), [user, org, matches, handleMatchSelect, handleMatchesUpdate]);
 
   // Afficher un loader pendant la vérification de l'authentification
   if (loading) {
@@ -314,16 +340,7 @@ function App(){
   }
 
   console.log('🏠 Render - Page d\'espace');
-  return (
-    <SpacePage
-      user={user}
-      org={org}
-      orgs={orgs}
-      matches={matches}
-      onMatchSelect={handleMatchSelect}
-      onMatchesUpdate={handleMatchesUpdate}
-    />
-  );
+  return <SpacePage {...spacePageProps} />;
 }
 
 console.log('🎯 Main - Initialisation du root React');

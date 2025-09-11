@@ -32,10 +32,9 @@ function Login(){
       <h2 className="h1">Connexion Opérateur</h2>
       <div className="row"><input className="input" value={email} onChange={e=>setEmail(e.target.value)} placeholder="email"/></div>
       <div className="row"><input className="input" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="mot de passe"/></div>
-      <div className="row"><button onClick={submit}>{mode==='signin'?'Se connecter':'Créer un compte'}</button><button onClick={()=>setMode(mode==='signin'?'signup':'signin')}>{mode==='signin'?'Créer un compte':'J’ai déjà un compte'}</button></div>
+      <div className="row"><button onClick={submit}>{mode==='signin'?'Se connecter':'Créer un compte'}</button><button onClick={()=>setMode(mode==='signin'?'signup':'signin')}>{mode==='signin'?'Créer un compte':'J'ai déjà un compte'}</button></div>
       {msg && <div className="small">{msg}</div>}
     </div>
-  }
   </div>;
 }
 
@@ -106,24 +105,6 @@ function App(){
       onMatchesUpdate={handleMatchesUpdate}
     />
   );
-}
-
-function Preview({state, home, away}:{state:MatchState, home:string, away:string}){
-  const [Comp, setComp] = useState<any>(null);
-  useEffect(()=>{ import('./components/Scoreboard').then(m=>setComp(()=>m.Scoreboard)); const l = document.createElement('link'); l.rel='stylesheet'; l.href='/../display/src/theme.css'; document.head.appendChild(l); return ()=>{ document.head.removeChild(l) }; }, []);
-  return Comp ? <div style={{padding:16}}><Comp state={state} homeName={home} awayName={away} /></div> : null;
-}
-
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
-
-    </div>
-  );
-}
-
-function Preview({state, home, away}:{state:MatchState, home:string, away:string}){
-  const [Comp, setComp] = useState<any>(null);
-  useEffect(()=>{ import('./components/Scoreboard').then(m=>setComp(()=>m.Scoreboard)); const l = document.createElement('link'); l.rel='stylesheet'; l.href='/../display/src/theme.css'; document.head.appendChild(l); return ()=>{ document.head.removeChild(l) }; }, []);
-  return Comp ? <div style={{padding:16}}><Comp state={state} homeName={home} awayName={away} /></div> : null;
 }
 
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);

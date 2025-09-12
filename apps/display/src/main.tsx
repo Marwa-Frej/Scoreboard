@@ -46,90 +46,58 @@ function App(){
     const supa = createSupa();
     setConnectionStatus('Recherche de match actif...');
     
-    // Écouter les changements de statut des matchs
-    const channel = supa
-      .channel('matches-status')
-      .on('postgres_changes', 
-        { event: 'UPDATE', schema: 'public', table: 'matches' }, 
-        (payload) => {
-          console.log('Display - Changement de match détecté:', payload);
-          checkForActiveMatch();
-        }
-      )
-      .subscribe();
-
-    // Vérifier s'il y a un match actif au démarrage
+    // Vérifier s'il y a un match actif au démarrage et périodiquement
     checkForActiveMatch();
+    const interval = setInterval(checkForActiveMatch, 2000); // Vérifier toutes les 2 secondes
 
     async function checkForActiveMatch() {
       try {
         console.log('Display - Recherche de match actif...');
         
-        // D'abord chercher les matchs live
+        // Chercher tous les matchs récents (live ou scheduled récemment modifiés)
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        
         let { data: matches } = await supa
           .from('matches')
           .select('*')
-          .eq('status', 'live')
+          .in('status', ['live', 'scheduled'])
+          .gte('updated_at', fiveMinutesAgo)
           .order('updated_at', { ascending: false })
           .limit(5);
 
-        console.log('Display - Matchs live trouvés:', matches);
+        console.log('Display - Matchs récents trouvés:', matches);
 
         if (matches && matches.length > 0) {
-          // Prendre le match le plus récemment mis à jour
+          // Prendre le match le plus récemment modifié
           const match = matches[0];
-          console.log('Display - Match actif trouvé:', match);
+          console.log('Display - Match récent trouvé:', match);
           setCurrentMatch(match);
           setHome(match.home_name);
           setAway(match.away_name);
           connectToMatch(match);
         } else {
-          console.log('Display - Aucun match live, recherche des matchs récents...');
+          console.log('Display - Aucun match récent, recherche du dernier match...');
           
-          // Chercher les matchs récemment modifiés (dans les 10 dernières minutes)
-          const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-          
-          const { data: recentMatches } = await supa
+          // En dernier recours, prendre le dernier match modifié
+          const { data: lastMatches } = await supa
             .from('matches')
             .select('*')
             .in('status', ['scheduled', 'live'])
-            .gte('updated_at', tenMinutesAgo)
             .order('updated_at', { ascending: false })
-            .limit(5);
+            .limit(1);
 
-          console.log('Display - Matchs récents trouvés:', recentMatches);
-
-          if (recentMatches && recentMatches.length > 0) {
-            const match = recentMatches[0];
-            console.log('Display - Match récent trouvé:', match);
+          if (lastMatches && lastMatches.length > 0) {
+            const match = lastMatches[0];
+            console.log('Display - Dernier match trouvé:', match);
             setCurrentMatch(match);
             setHome(match.home_name);
             setAway(match.away_name);
             connectToMatch(match);
           } else {
-            console.log('Display - Aucun match récent, recherche du dernier match...');
-            
-            // En dernier recours, prendre le dernier match modifié
-            const { data: lastMatches } = await supa
-              .from('matches')
-              .select('*')
-              .in('status', ['scheduled', 'live'])
-              .order('updated_at', { ascending: false })
-              .limit(1);
-              
-            if (lastMatches && lastMatches.length > 0) {
-              const match = lastMatches[0];
-              console.log('Display - Dernier match trouvé:', match);
-              setCurrentMatch(match);
-              setHome(match.home_name);
-              setAway(match.away_name);
-              connectToMatch(match);
-            } else {
-              console.log('Display - Aucun match trouvé');
-              setConnectionStatus('Aucun match disponible');
-              setState(null);
-              setCurrentMatch(null);
-            }
+            console.log('Display - Aucun match trouvé');
+            setConnectionStatus('Aucun match disponible');
+            setState(null);
+            setCurrentMatch(null);
           }
         }
       } catch (error) {
@@ -165,7 +133,7 @@ function App(){
     }
 
     return () => {
-      supa.removeChannel(channel);
+      clearInterval(interval);
       if (displayConnection) {
         displayConnection.close();
       }

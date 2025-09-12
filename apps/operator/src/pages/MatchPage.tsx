@@ -17,9 +17,8 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
   const [displayUrl, setDisplayUrl] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
   const [archiving, setArchiving] = useState(false);
-  const [matchStarted, setMatchStarted] = useState(false);
   const [isUnmounting, setIsUnmounting] = useState(false);
-  const [hasBeenStarted, setHasBeenStarted] = useState(false);
+  const [matchStarted, setMatchStarted] = useState(false);
 
   // Marquer le match comme "live" quand il est sélectionné
   useEffect(() => {
@@ -30,16 +29,16 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
         const { data, error } = await supa
           .from('matches')
           .update({ 
-            status: 'live',
+            status: 'scheduled',
             updated_at: new Date().toISOString()
           })
           .eq('id', match.id)
           .select('*');
         
         if (error) {
-          console.error('Erreur lors du marquage live:', error);
+          console.error('Erreur lors du marquage scheduled:', error);
         } else {
-          console.log('Match marqué comme live:', data);
+          console.log('Match marqué comme scheduled:', data);
         }
       } catch (err) {
         console.error('Erreur inattendue:', err);
@@ -116,10 +115,23 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     if (!state || !chan) return;
     if (isUnmounting) return;
     
-    // Détecter si le match a commencé (horloge démarrée ou score modifié)
-    if (type === 'clock:start' || type.includes('score:') || type.includes('goal') || type.includes('point')) {
+    // Détecter si le match a commencé (SEULEMENT quand l'horloge démarre)
+    if (type === 'clock:start') {
       setMatchStarted(true);
-      setHasBeenStarted(true);
+      
+      // Marquer le match comme "live" dans la base de données
+      const markAsLive = async () => {
+        try {
+          await supa.from('matches').update({ 
+            status: 'live',
+            updated_at: new Date().toISOString()
+          }).eq('id', match.id);
+          console.log('Match marqué comme live après démarrage chrono');
+        } catch (error) {
+          console.error('Erreur lors du marquage live:', error);
+        }
+      };
+      markAsLive();
     }
     
     const next = reduce(state, { type, payload });
@@ -154,7 +166,6 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
       const resetState = initMatchState(key, match.sport);
       setState(resetState);
       setMatchStarted(false);
-      setHasBeenStarted(false);
       
       // Publier le nouvel état
       if (chan) {
@@ -170,7 +181,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
   }
 
   async function archiveMatch() {
-    if (matchStarted || hasBeenStarted) {
+    if (matchStarted) {
       alert('Impossible d\'archiver un match qui a été démarré. Veuillez d\'abord le remettre à zéro ou attendre qu\'il soit terminé.');
       return;
     }
@@ -246,29 +257,29 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
           <button 
             onClick={archiveMatch}
             disabled={archiving}
-            title={matchStarted || hasBeenStarted ? "Impossible d'archiver un match qui a été démarré" : "Archiver ce match"}
+            title={matchStarted ? "Impossible d'archiver un match qui a été démarré" : "Archiver ce match"}
             style={{ 
-              background: matchStarted || hasBeenStarted ? '#6b7280' : '#f59e0b', 
-              borderColor: matchStarted || hasBeenStarted ? '#6b7280' : '#f59e0b',
+              background: matchStarted ? '#6b7280' : '#f59e0b', 
+              borderColor: matchStarted ? '#6b7280' : '#f59e0b',
               color: 'white',
               minHeight: '40px',
-              cursor: matchStarted || hasBeenStarted ? 'not-allowed' : 'pointer',
-              opacity: matchStarted || hasBeenStarted ? 0.6 : 1
+              cursor: matchStarted ? 'not-allowed' : 'pointer',
+              opacity: matchStarted ? 0.6 : 1
             }}
           >
             {archiving ? '📦 Archivage...' : '📦 Archiver'}
           </button>
           <button 
             onClick={resetMatch}
-            disabled={!hasBeenStarted}
-            title={hasBeenStarted ? "Remettre le match à zéro" : "Le match n'a pas encore été démarré"}
+            disabled={!matchStarted}
+            title={matchStarted ? "Remettre le match à zéro" : "Le match n'a pas encore été démarré"}
             style={{ 
-              background: hasBeenStarted ? '#dc2626' : '#6b7280', 
-              borderColor: hasBeenStarted ? '#dc2626' : '#6b7280',
+              background: matchStarted ? '#dc2626' : '#6b7280', 
+              borderColor: matchStarted ? '#dc2626' : '#6b7280',
               color: 'white',
               minHeight: '40px',
-              cursor: hasBeenStarted ? 'pointer' : 'not-allowed',
-              opacity: hasBeenStarted ? 1 : 0.6
+              cursor: matchStarted ? 'pointer' : 'not-allowed',
+              opacity: matchStarted ? 1 : 0.6
             }}
           >
             🔄 Reset

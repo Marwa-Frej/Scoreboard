@@ -35,6 +35,11 @@ export function createOperatorChannel(org: string, matchId: string, token: strin
     onHello(); 
   });
   
+  // Écouter tous les messages pour debug
+  ch.on('broadcast', { event: '*' }, (p) => { 
+    console.log('Operator - Message reçu:', p.event, p.payload);
+  });
+  
   ch.subscribe((status) => { 
     console.log('Operator - Statut de souscription:', status);
     if (status === 'SUBSCRIBED') onAck?.(); 

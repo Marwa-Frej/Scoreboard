@@ -1,7 +1,7 @@
 :root{
   --bg:#05060a; --panel:#0b0e14; --panel2:#0f1320; --glass:rgba(255,255,255,.04);
-  --led:#36ffb5; --led-dim:#36ffb580; --accent:#243b55; --text:#eaeef5;
-  --chip-bg:rgba(10,14,22,.75); --chip-border:#1d2433;
+  --led:#00ff88; --led-dim:#00ff8880; --accent:#243b55; --text:#ffffff;
+  --chip-bg:rgba(10,14,22,.85); --chip-border:#1d2433;
 }
 html,body,#root{height:100%} body{margin:0;background:radial-gradient(1200px 800px at 20% 0%, #0b1430 0, #05060a 60%), linear-gradient(180deg, #05060a, #070a11);color:var(--text);font-family:Inter, ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial}
 .board{width:100%;height:100%;display:grid;place-items:center}
@@ -14,9 +14,12 @@ html,body,#root{height:100%} body{margin:0;background:radial-gradient(1200px 800
 .badge{width:12px;height:12px;border-radius:50%;background:var(--led-dim);box-shadow:0 0 10px var(--led-dim),0 0 1px var(--led)}
 .score{display:flex;align-items:baseline;gap:22px;font-variant-numeric:tabular-nums}
 .led{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-weight:900;letter-spacing:.02em;color:var(--led);text-shadow:0 0 12px var(--led),0 0 24px var(--led),0 0 50px var(--led-dim);filter:drop-shadow(0 0 3px var(--led))}
-.led.huge{font-size:clamp(90px,12vw,200px)} .led.big{font-size:clamp(40px,6vw,96px)} .led.med{font-size:clamp(22px,2.6vw,36px)} .sep{opacity:.6}
+.led.huge{font-size:clamp(90px,12vw,200px);font-weight:900;text-shadow:0 0 20px var(--led),0 0 40px var(--led),0 0 80px var(--led-dim)} 
+.led.big{font-size:clamp(40px,6vw,96px);font-weight:900;text-shadow:0 0 15px var(--led),0 0 30px var(--led),0 0 60px var(--led-dim)} 
+.led.med{font-size:clamp(22px,2.6vw,36px);font-weight:900;text-shadow:0 0 10px var(--led),0 0 20px var(--led),0 0 40px var(--led-dim)} 
+.sep{opacity:.8;color:var(--led)}
 .sub{margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
-.chip{background:var(--chip-bg);backdrop-filter: blur(8px);-webkit-backdrop-filter: blur(8px);border:1px solid var(--chip-border);padding:8px 12px;border-radius:12px;display:flex;align-items:center;gap:10px}
+.chip{background:var(--chip-bg);backdrop-filter: blur(8px);-webkit-backdrop-filter: blur(8px);border:1px solid var(--chip-border);padding:8px 12px;border-radius:12px;display:flex;align-items:center;gap:10px;color:var(--text);font-weight:600}
 .blink{animation:blink 1s steps(2,start) infinite}@keyframes blink{to{visibility:hidden}}
 .toolbar{position:fixed;left:12px;bottom:12px;display:flex;gap:8px;align-items:center;background:rgba(10,14,22,.7);border:1px solid #1b2230;padding:6px 10px;border-radius:10px}
 .toolbar select, .toolbar button{background:#0b0f1a;color:#e5ecff;border:1px solid #1d2636;border-radius:8px;padding:6px 8px;cursor:pointer}

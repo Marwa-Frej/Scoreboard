@@ -44,7 +44,26 @@ export function connectDisplay(org: string, matchId: string, token: string, onSt
           event: 'request_state', 
           payload: { display: true } 
         });
-      }, 1000);
+      }, 500);
+      
+      // Redemander l'état toutes les 3 secondes si pas de réponse
+      const requestInterval = setInterval(() => {
+        console.log('Display - Demande périodique de l\'état');
+        ch.send({ 
+          type: 'broadcast', 
+          event: 'request_state', 
+          payload: { display: true } 
+        });
+      }, 3000);
+      
+      // Nettoyer l'interval quand on ferme
+      const originalClose = () => { 
+        console.log('Display - Fermeture de la connexion');
+        clearInterval(requestInterval);
+        supa.removeChannel(ch); 
+      };
+      
+      return { close: originalClose };
     }
   });
   

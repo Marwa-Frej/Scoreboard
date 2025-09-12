@@ -4,8 +4,9 @@ import type { MatchState } from '@pkg/types';
 import { applyTheme, type ThemeName } from './themes';
 import './theme.css';
 import { Scoreboard } from './components/Scoreboard';
-import { connectDisplay, createSupa } from './realtime';
+import { connectDisplay } from './realtime';
 import { applyTick } from '@pkg/logic';
+import { createClient } from '@supabase/supabase-js';
 
 function App(){
   const p = new URLSearchParams(location.search);
@@ -20,6 +21,7 @@ function App(){
   const [connectionStatus, setConnectionStatus] = useState<string>('En attente de sélection de match...');
   const [displayConnection, setDisplayConnection] = useState<any>(null);
   const [envError, setEnvError] = useState<string>('');
+  const [supa, setSupa] = useState<any>(null);
 
   useEffect(()=>{ applyTheme(theme); }, [theme]);
   
@@ -37,16 +39,21 @@ function App(){
       setEnvError('Configuration Supabase invalide');
       return;
     }
+    
+    // Créer le client Supabase
+    const supabaseClient = createClient(supabaseUrl, supabaseKey, { 
+      auth: { persistSession: false } 
+    });
+    setSupa(supabaseClient);
   }, []);
 
-  // Écouter les matchs actifs depuis la base de données
+  // Écouter les matchs actifs depuis la base de données (sans authentification)
   useEffect(()=>{
-    if (envError) return;
+    if (envError || !supa) return;
     
-    const supa = createSupa();
     setConnectionStatus('Recherche de match actif...');
     
-    // Vérifier s'il y a un match actif au démarrage et périodiquement
+    // Vérifier s'il y a un match actif périodiquement
     checkForActiveMatch();
     const interval = setInterval(checkForActiveMatch, 2000); // Vérifier toutes les 2 secondes
 
@@ -54,55 +61,46 @@ function App(){
       try {
         console.log('Display - Recherche de match actif...');
         
-        // Chercher tous les matchs récents (live ou scheduled récemment modifiés)
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-        
-        let { data: matches } = await supa
+        // Chercher tous les matchs avec public_display = true (accessible sans auth)
+        let { data: matches, error } = await supa
           .from('matches')
           .select('*')
+          .eq('public_display', true)
           .in('status', ['live', 'scheduled'])
-          .gte('updated_at', fiveMinutesAgo)
           .order('updated_at', { ascending: false })
-          .limit(5);
-
-        console.log('Display - Matchs récents trouvés:', matches);
+          .limit(10);
+        
+        if (error) {
+          console.error('Display - Erreur requête:', error);
+          setConnectionStatus(`Erreur DB: ${error.message}`);
+          return;
+        }
+        
+        console.log('Display - Matchs publics trouvés:', matches);
 
         if (matches && matches.length > 0) {
-          // Prendre le match le plus récemment modifié
-          const match = matches[0];
-          console.log('Display - Match récent trouvé:', match);
+          // Chercher d'abord un match "live"
+          let match = matches.find(m => m.status === 'live');
+          
+          // Sinon prendre le plus récemment modifié
+          if (!match) {
+            match = matches[0];
+          }
+          
+          console.log('Display - Match sélectionné:', match);
           setCurrentMatch(match);
           setHome(match.home_name);
           setAway(match.away_name);
           connectToMatch(match);
         } else {
-          console.log('Display - Aucun match récent, recherche du dernier match...');
-          
-          // En dernier recours, prendre le dernier match modifié
-          const { data: lastMatches } = await supa
-            .from('matches')
-            .select('*')
-            .in('status', ['scheduled', 'live'])
-            .order('updated_at', { ascending: false })
-            .limit(1);
-
-          if (lastMatches && lastMatches.length > 0) {
-            const match = lastMatches[0];
-            console.log('Display - Dernier match trouvé:', match);
-            setCurrentMatch(match);
-            setHome(match.home_name);
-            setAway(match.away_name);
-            connectToMatch(match);
-          } else {
-            console.log('Display - Aucun match trouvé');
-            setConnectionStatus('Aucun match disponible');
-            setState(null);
-            setCurrentMatch(null);
-          }
+          console.log('Display - Aucun match public trouvé');
+          setConnectionStatus('Aucun match public disponible');
+          setState(null);
+          setCurrentMatch(null);
         }
       } catch (error) {
         console.error('Display - Erreur lors de la recherche de match:', error);
-        setConnectionStatus('Erreur de connexion à la base de données');
+        setConnectionStatus(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
       }
     }
 
@@ -138,7 +136,7 @@ function App(){
         displayConnection.close();
       }
     };
-  }, [displayConnection]);
+  }, [displayConnection, supa]);
 
   // Gestion du tick pour les horloges
   useEffect(() => { 

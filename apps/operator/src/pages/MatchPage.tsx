@@ -19,6 +19,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
   const [archiving, setArchiving] = useState(false);
   const [matchStarted, setMatchStarted] = useState(false);
   const [isUnmounting, setIsUnmounting] = useState(false);
+  const [hasBeenStarted, setHasBeenStarted] = useState(false);
 
   // Marquer le match comme "live" quand il est sélectionné
   useEffect(() => {
@@ -118,6 +119,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     // Détecter si le match a commencé (horloge démarrée ou score modifié)
     if (type === 'clock:start' || type.includes('score:') || type.includes('goal') || type.includes('point')) {
       setMatchStarted(true);
+      setHasBeenStarted(true);
     }
     
     const next = reduce(state, { type, payload });
@@ -126,9 +128,50 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     chan.publish(next, match);
   }
 
+  async function resetMatch() {
+    if (!confirm('Êtes-vous sûr de vouloir remettre ce match à zéro ? Cela arrêtera le chronomètre et remettra les scores à 0.')) {
+      return;
+    }
+    
+    try {
+      // Remettre le match en "scheduled" dans la base
+      const { error } = await supa
+        .from('matches')
+        .update({ 
+          status: 'scheduled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', match.id);
+      
+      if (error) {
+        console.error('Erreur lors du reset:', error);
+        alert(`Erreur lors du reset: ${error.message}`);
+        return;
+      }
+      
+      // Réinitialiser l'état local
+      const key = `${match.org_id}:${match.id}`;
+      const resetState = initMatchState(key, match.sport);
+      setState(resetState);
+      setMatchStarted(false);
+      setHasBeenStarted(false);
+      
+      // Publier le nouvel état
+      if (chan) {
+        chan.publish(resetState, match);
+      }
+      
+      console.log('Match remis à zéro avec succès');
+      
+    } catch (err) {
+      console.error('Erreur inattendue:', err);
+      alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
+    }
+  }
+
   async function archiveMatch() {
-    if (matchStarted) {
-      alert('Impossible d\'archiver un match en cours. Veuillez d\'abord arrêter le chronomètre et terminer le match.');
+    if (matchStarted || hasBeenStarted) {
+      alert('Impossible d\'archiver un match qui a été démarré. Veuillez d\'abord le remettre à zéro ou attendre qu\'il soit terminé.');
       return;
     }
     
@@ -203,17 +246,32 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
           <button 
             onClick={archiveMatch}
             disabled={archiving}
-            title={matchStarted ? "Impossible d'archiver un match en cours" : "Archiver ce match"}
+            title={matchStarted || hasBeenStarted ? "Impossible d'archiver un match qui a été démarré" : "Archiver ce match"}
             style={{ 
-              background: matchStarted ? '#6b7280' : '#f59e0b', 
-              borderColor: matchStarted ? '#6b7280' : '#f59e0b',
+              background: matchStarted || hasBeenStarted ? '#6b7280' : '#f59e0b', 
+              borderColor: matchStarted || hasBeenStarted ? '#6b7280' : '#f59e0b',
               color: 'white',
               minHeight: '40px',
-              cursor: matchStarted ? 'not-allowed' : 'pointer',
-              opacity: matchStarted ? 0.6 : 1
+              cursor: matchStarted || hasBeenStarted ? 'not-allowed' : 'pointer',
+              opacity: matchStarted || hasBeenStarted ? 0.6 : 1
             }}
           >
             {archiving ? '📦 Archivage...' : '📦 Archiver'}
+          </button>
+          <button 
+            onClick={resetMatch}
+            disabled={!hasBeenStarted}
+            title={hasBeenStarted ? "Remettre le match à zéro" : "Le match n'a pas encore été démarré"}
+            style={{ 
+              background: hasBeenStarted ? '#dc2626' : '#6b7280', 
+              borderColor: hasBeenStarted ? '#dc2626' : '#6b7280',
+              color: 'white',
+              minHeight: '40px',
+              cursor: hasBeenStarted ? 'pointer' : 'not-allowed',
+              opacity: hasBeenStarted ? 1 : 0.6
+            }}
+          >
+            🔄 Reset
           </button>
         </div>
       </div>

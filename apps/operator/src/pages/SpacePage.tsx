@@ -294,12 +294,8 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
   }, []);
 
   const handleMatchSelect = useCallback((match: MatchInfo) => {
-    if (activeMatch && activeMatch.id !== match.id) {
-      alert(`Un match est déjà actif: "${activeMatch.name}". Veuillez d'abord l'archiver ou le remettre à zéro avant de sélectionner un autre match.`);
-      return;
-    }
     onMatchSelect(match);
-  }, [activeMatch, onMatchSelect]);
+  }, [onMatchSelect]);
 
   // Rendu stable
   return (
@@ -390,32 +386,32 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
               </div>
               <div className="match-actions">
                 <button 
-                  onClick={() => handleMatchSelect(m)} 
+                  onClick={() => handleMatchSelect(m)}
                   className={m.status === 'live' ? 'success' : 'primary'}
                   disabled={operationState.isSubmitting || (activeMatch && activeMatch.id !== m.id)}
-                  title={
-                    activeMatch && activeMatch.id !== m.id 
-                      ? `Match "${activeMatch.name}" déjà actif`
-                      : m.status === 'live' 
-                        ? 'Reprendre ce match actif'
-                        : 'Sélectionner ce match'
-                  }
+                  title={m.status === 'live' ? 'Aller à la console de ce match actif' : 
+                         (activeMatch && activeMatch.id !== m.id) ? `Match "${activeMatch.name}" déjà actif` : 
+                         'Sélectionner ce match'}
                 >
-                  {m.status === 'live' ? '🎮 Reprendre' : 'Sélectionner'}
+                  {m.status === 'live' ? '🎮 Console' : 'Sélectionner'}
                 </button>
                 <button 
                   onClick={() => openEditModal(m)} 
                   style={{ background: '#f59e0b', borderColor: '#f59e0b', color: 'white' }}
-                  disabled={operationState.isSubmitting || m.status === 'live'}
-                  title={m.status === 'live' ? 'Impossible de modifier un match actif' : 'Modifier ce match'}
+                  disabled={operationState.isSubmitting || m.status === 'live' || (activeMatch && activeMatch.id !== m.id)}
+                  title={m.status === 'live' ? 'Impossible de modifier un match actif' : 
+                         (activeMatch && activeMatch.id !== m.id) ? `Match "${activeMatch.name}" déjà actif` :
+                         'Modifier ce match'}
                 >
                   ✏️ Modifier
                 </button>
                 <button 
                   onClick={() => deleteMatch(m.id)} 
                   className="danger"
-                  disabled={operationState.isSubmitting || m.status === 'live'}
-                  title={m.status === 'live' ? 'Impossible de supprimer un match actif' : 'Supprimer ce match définitivement'}
+                  disabled={operationState.isSubmitting || m.status === 'live' || (activeMatch && activeMatch.id !== m.id)}
+                  title={m.status === 'live' ? 'Impossible de supprimer un match actif' : 
+                         (activeMatch && activeMatch.id !== m.id) ? `Match "${activeMatch.name}" déjà actif` :
+                         'Supprimer ce match définitivement'}
                 >
                   🗑️ Supprimer
                 </button>

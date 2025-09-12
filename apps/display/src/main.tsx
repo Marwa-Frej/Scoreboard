@@ -91,6 +91,22 @@ function App(){
           setCurrentMatch(match);
           setHome(match.home_name);
           setAway(match.away_name);
+          
+          // Créer un état initial pour afficher le tableau de bord immédiatement
+          const initialState = {
+            matchId: match.id,
+            sport: match.sport,
+            clock: {
+              durationSec: match.sport === 'basket' ? 600 : match.sport === 'football' ? 2700 : 600,
+              remainingMs: match.sport === 'basket' ? 600000 : match.sport === 'football' ? 2700000 : 600000,
+              running: false,
+              period: 1
+            },
+            score: { home: 0, away: 0 },
+            meta: {}
+          };
+          
+          setState(initialState);
           connectToMatch(match);
         } else {
           console.log('Display - Aucun match public trouvé');

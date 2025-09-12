@@ -35,6 +35,16 @@ export function connectDisplay(org: string, matchId: string, token: string, onSt
         event: 'hello', 
         payload: { want: 'state', display: true } 
       });
+      
+      // Demander l'état actuel après 1 seconde
+      setTimeout(() => {
+        console.log('Display - Demande de l\'état actuel');
+        ch.send({ 
+          type: 'broadcast', 
+          event: 'request_state', 
+          payload: { display: true } 
+        });
+      }, 1000);
     }
   });
   

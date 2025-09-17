@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import type { MatchInfo, MatchState } from '@pkg/types';
 import { initMatchState, reduce } from '../state';
 import { Panel } from '../components/Panels';

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import type { MatchInfo, Sport } from '@pkg/types';
 import { supa } from '../supabase';
 
@@ -43,7 +43,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
     activeMatch: activeMatch?.name || 'Aucun'
   });
   
-  // États stables - pas de réinitialisation intempestive
+  // États locaux simples
   const [modalState, setModalState] = useState<{
     type: 'none' | 'create' | 'edit';
     editingId: string | null;
@@ -59,7 +59,6 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
     message: '',
     messageType: 'info'
   });
-  const [isNavigating, setIsNavigating] = useState(false);
 
   // Mémorisation des matchs pour éviter les re-calculs
   const { upcomingMatches, archivedMatches } = useMemo(() => {
@@ -68,7 +67,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
     return { upcomingMatches: upcoming, archivedMatches: archived };
   }, [matches]);
 
-  // Fonctions stables avec useCallback
+  // Fonctions utilitaires
   const setMessage = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setOperationState(prev => ({ ...prev, message, messageType: type }));
     if (message) {
@@ -105,7 +104,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
   }, []);
 
   const closeModal = useCallback(() => {
-    if (operationState.isSubmitting) return; // Empêcher la fermeture pendant une opération
+    if (operationState.isSubmitting) return;
     setModalState({ type: 'none', editingId: null });
     resetForm();
   }, [operationState.isSubmitting, resetForm]);
@@ -184,7 +183,6 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
       onMatchesUpdate(updatedMatches);
       setMessage('Match créé avec succès !', 'success');
       
-      // Fermer le modal après succès
       setTimeout(() => {
         setModalState({ type: 'none', editingId: null });
         resetForm();
@@ -231,7 +229,6 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
       onMatchesUpdate(updatedMatches);
       setMessage('Match modifié avec succès !', 'success');
       
-      // Fermer le modal après succès
       setTimeout(() => {
         setModalState({ type: 'none', editingId: null });
         resetForm();
@@ -289,19 +286,13 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
     supa.auth.signOut();
   }, []);
 
-  const handleMatchSelect = useCallback((match: MatchInfo) => {
-    console.log('🎯 Tentative de sélection:', match.name, 'Match actif:', activeMatch?.name || 'Aucun');
-    
-    if (!isNavigating) {
-      setIsNavigating(true);
-      console.log('✅ Sélection autorisée');
-      onMatchSelect(match);
-      // Reset le flag après un délai
-      setTimeout(() => setIsNavigating(false), 100);
-    }
-  }, [onMatchSelect, activeMatch]);
+  // Fonction simple pour sélectionner un match
+  function handleMatchSelect(match: MatchInfo) {
+    console.log('🎯 SpacePage - Sélection du match:', match.name);
+    onMatchSelect(match);
+  }
 
-  // Rendu stable
+  // Rendu
   return (
     <div className="space-page">
       <div className="card">
@@ -387,19 +378,18 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
                 <button 
                   onClick={() => handleMatchSelect(m)}
                   className="primary"
-                  disabled={operationState.isSubmitting || isNavigating || (activeMatch && activeMatch.id !== m.id)}
+                  disabled={operationState.isSubmitting || (activeMatch && activeMatch.id !== m.id)}
                   title={activeMatch?.id === m.id ? 'Aller à la console de ce match' : 
                          (activeMatch && activeMatch.id !== m.id) ? `Impossible - Match "${activeMatch.name}" est actif` : 
                          'Sélectionner ce match'}
                 >
-                  {isNavigating ? '⏳' : (activeMatch?.id === m.id ? '🎮 Console' : 'Sélectionner')}
+                  {activeMatch?.id === m.id ? '🎮 Console' : 'Sélectionner'}
                 </button>
                 <button 
                   onClick={() => openEditModal(m)} 
                   style={{ background: '#f59e0b', borderColor: '#f59e0b', color: 'white' }}
                   disabled={operationState.isSubmitting}
-                  title={activeMatch?.id === m.id ? 'Modifier ce match actif' :
-                         'Modifier ce match'}
+                  title="Modifier ce match"
                 >
                   ✏️ Modifier
                 </button>

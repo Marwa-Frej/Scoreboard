@@ -14,26 +14,19 @@ function App() {
   const [org, setOrg] = useState<any>(null);
   const [matches, setMatches] = useState<MatchInfo[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
-  const [activeMatch, setActiveMatch] = useState<MatchInfo | null>(null);
   const [error, setError] = useState<string>('');
   const [authStep, setAuthStep] = useState<'login' | 'register'>('login');
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Calculer le match actif de manière simple
+  const activeMatch = matches.find(m => m.status === 'live') || null;
 
   // Vérifier la session au démarrage
   useEffect(() => {
     console.log('🔐 Auth - Vérification de la session');
     checkSession();
   }, []);
-
-  // Détecter le match actif dans la liste des matchs
-  useEffect(() => {
-    const liveMatch = matches.find(m => m.status === 'live');
-    if (activeMatch?.id !== liveMatch?.id) {
-      setActiveMatch(liveMatch || null);
-      console.log('🎯 Match actif détecté:', liveMatch?.name || 'Aucun');
-    }
-  }, [matches, activeMatch?.id]);
 
   async function checkSession() {
     try {
@@ -178,33 +171,22 @@ function App() {
     setAuthLoading(false);
   }
 
-  // Fonction pour gérer la sélection de match
+  // Fonction simple pour sélectionner un match
   function handleMatchSelect(match: MatchInfo) {
     console.log('🎯 Sélection du match:', match.name);
     setSelectedMatch(match);
   }
 
-  // Fonction pour gérer le retour à la liste
+  // Fonction simple pour retourner à la liste
   function handleBackToList() {
     console.log('🔙 Retour à la liste des matchs');
     setSelectedMatch(null);
   }
 
-  // Fonction pour mettre à jour la liste des matchs (stable)
+  // Fonction pour mettre à jour la liste des matchs
   const handleMatchesUpdate = useCallback((updatedMatches: MatchInfo[]) => {
+    console.log('📋 Mise à jour des matchs:', updatedMatches.length);
     setMatches(updatedMatches);
-  }, []);
-
-  // Fonction stable pour la sélection de match
-  const stableHandleMatchSelect = useCallback((match: MatchInfo) => {
-    console.log('🎯 Sélection du match:', match.name);
-    setSelectedMatch(match);
-  }, []);
-
-  // Fonction stable pour le retour à la liste
-  const stableHandleBackToList = useCallback(() => {
-    console.log('🔙 Retour à la liste des matchs');
-    setSelectedMatch(null);
   }, []);
 
   // Écran de chargement
@@ -404,7 +386,7 @@ function App() {
     return (
       <MatchPage
         match={selectedMatch}
-        onBack={stableHandleBackToList}
+        onBack={handleBackToList}
         activeMatch={activeMatch}
         onMatchesUpdate={handleMatchesUpdate}
       />
@@ -416,7 +398,7 @@ function App() {
       user={user}
       org={org}
       matches={matches}
-      onMatchSelect={stableHandleMatchSelect}
+      onMatchSelect={handleMatchSelect}
       onMatchesUpdate={handleMatchesUpdate}
       activeMatch={activeMatch}
     />

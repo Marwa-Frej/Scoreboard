@@ -291,15 +291,9 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
   const handleMatchSelect = useCallback((match: MatchInfo) => {
     console.log('🎯 Tentative de sélection:', match.name, 'Match actif:', activeMatch?.name || 'Aucun');
     
-    // Si un match est actif et ce n'est pas le match actif, bloquer la sélection
-    if (activeMatch && activeMatch.id !== match.id) {
-      console.log('🚫 Sélection bloquée - Match actif:', activeMatch.name);
-      return;
-    }
-    
     console.log('✅ Sélection autorisée');
     onMatchSelect(match);
-  }, [onMatchSelect]);
+  }, [onMatchSelect, activeMatch]);
 
   // Rendu stable
   return (

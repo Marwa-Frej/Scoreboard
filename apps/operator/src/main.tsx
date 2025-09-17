@@ -188,10 +188,22 @@ function App() {
     setSelectedMatch(null);
   }
 
-  // Fonction pour mettre à jour la liste des matchs
-  function handleMatchesUpdate(updatedMatches: MatchInfo[]) {
+  // Fonction pour mettre à jour la liste des matchs (stable)
+  const handleMatchesUpdate = useCallback((updatedMatches: MatchInfo[]) => {
     setMatches(updatedMatches);
-  }
+  }, []);
+
+  // Fonction stable pour la sélection de match
+  const stableHandleMatchSelect = useCallback((match: MatchInfo) => {
+    console.log('🎯 Sélection du match:', match.name);
+    setSelectedMatch(match);
+  }, []);
+
+  // Fonction stable pour le retour à la liste
+  const stableHandleBackToList = useCallback(() => {
+    console.log('🔙 Retour à la liste des matchs');
+    setSelectedMatch(null);
+  }, []);
 
   // Écran de chargement
   if (loading) {
@@ -390,7 +402,7 @@ function App() {
     return (
       <MatchPage
         match={selectedMatch}
-        onBack={handleBackToList}
+        onBack={stableHandleBackToList}
         activeMatch={activeMatch}
         onMatchesUpdate={handleMatchesUpdate}
       />
@@ -402,7 +414,7 @@ function App() {
       user={user}
       org={org}
       matches={matches}
-      onMatchSelect={handleMatchSelect}
+      onMatchSelect={stableHandleMatchSelect}
       onMatchesUpdate={handleMatchesUpdate}
       activeMatch={activeMatch}
     />

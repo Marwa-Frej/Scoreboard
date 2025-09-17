@@ -14,6 +14,7 @@ function App() {
   const [org, setOrg] = useState<any>(null);
   const [matches, setMatches] = useState<MatchInfo[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
+  const [activeMatch, setActiveMatch] = useState<MatchInfo | null>(null);
   const [error, setError] = useState<string>('');
   const [authStep, setAuthStep] = useState<'login' | 'register'>('login');
   const [credentials, setCredentials] = useState({ email: '', password: '' });
@@ -24,6 +25,13 @@ function App() {
     console.log('🔐 Auth - Vérification de la session');
     checkSession();
   }, []);
+
+  // Détecter le match actif dans la liste des matchs
+  useEffect(() => {
+    const liveMatch = matches.find(m => m.status === 'live');
+    setActiveMatch(liveMatch || null);
+    console.log('🎯 Match actif détecté:', liveMatch?.name || 'Aucun');
+  }, [matches]);
 
   async function checkSession() {
     try {
@@ -166,6 +174,23 @@ function App() {
     }
     
     setAuthLoading(false);
+  }
+
+  // Fonction pour gérer la sélection de match
+  function handleMatchSelect(match: MatchInfo) {
+    console.log('🎯 Sélection du match:', match.name);
+    setSelectedMatch(match);
+  }
+
+  // Fonction pour gérer le retour à la liste
+  function handleBackToList() {
+    console.log('🔙 Retour à la liste des matchs');
+    setSelectedMatch(null);
+  }
+
+  // Fonction pour mettre à jour la liste des matchs
+  function handleMatchesUpdate(updatedMatches: MatchInfo[]) {
+    setMatches(updatedMatches);
   }
 
   // Écran de chargement
@@ -365,7 +390,9 @@ function App() {
     return (
       <MatchPage
         match={selectedMatch}
-        onBack={() => setSelectedMatch(null)}
+        onBack={handleBackToList}
+        activeMatch={activeMatch}
+        onMatchesUpdate={handleMatchesUpdate}
       />
     );
   }
@@ -375,8 +402,9 @@ function App() {
       user={user}
       org={org}
       matches={matches}
-      onMatchSelect={setSelectedMatch}
-      onMatchesUpdate={setMatches}
+      onMatchSelect={handleMatchSelect}
+      onMatchesUpdate={handleMatchesUpdate}
+      activeMatch={activeMatch}
     />
   );
 }

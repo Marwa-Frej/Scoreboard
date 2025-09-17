@@ -10,6 +10,7 @@ interface SpacePageProps {
   matches: MatchInfo[];
   onMatchSelect: (match: MatchInfo) => void;
   onMatchesUpdate: (matches: MatchInfo[]) => void;
+  activeMatch: MatchInfo | null;
 }
 
 interface MatchFormData {
@@ -34,11 +35,12 @@ const initialFormData: MatchFormData = {
   time: ''
 };
 
-export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }: SpacePageProps) {
+export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, activeMatch }: SpacePageProps) {
   console.log('🏠 SpacePage - Rendu avec:', { 
     user: user?.email, 
     org: org?.name, 
-    matchesCount: matches.length 
+    matchesCount: matches.length,
+    activeMatch: activeMatch?.name || 'Aucun'
   });
   
   // États stables - pas de réinitialisation intempestive
@@ -57,19 +59,12 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
     message: '',
     messageType: 'info'
   });
-  const [activeMatch, setActiveMatch] = useState<MatchInfo | null>(null);
 
   // Mémorisation des matchs pour éviter les re-calculs
   const { upcomingMatches, archivedMatches } = useMemo(() => {
     const upcoming = matches.filter(m => m.status === 'scheduled' || m.status === 'live');
     const archived = matches.filter(m => m.status === 'finished' || m.status === 'archived');
     return { upcomingMatches: upcoming, archivedMatches: archived };
-  }, [matches]);
-
-  // Détecter s'il y a un match actif (live)
-  useEffect(() => {
-    const liveMatch = matches.find(m => m.status === 'live');
-    setActiveMatch(liveMatch || null);
   }, [matches]);
 
   // Fonctions stables avec useCallback
@@ -294,6 +289,15 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
   }, []);
 
   const handleMatchSelect = useCallback((match: MatchInfo) => {
+    console.log('🎯 Tentative de sélection:', match.name, 'Match actif:', activeMatch?.name || 'Aucun');
+    
+    // Si un match est actif et ce n'est pas le match actif, bloquer la sélection
+    if (activeMatch && activeMatch.id !== match.id) {
+      console.log('🚫 Sélection bloquée - Match actif:', activeMatch.name);
+      return;
+    }
+    
+    console.log('✅ Sélection autorisée');
     onMatchSelect(match);
   }, [onMatchSelect]);
 
@@ -311,7 +315,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                   onClick={openCreateModal}
                   className="add-match-btn"
                   title="Ajouter un nouveau match"
-                  disabled={operationState.isSubmitting || !!activeMatch}
+                  disabled={operationState.isSubmitting}
                 >
                   ➕ Ajouter un match
                 </button>
@@ -343,15 +347,10 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
         
         <h2 className="h1">
           Matchs à venir ({upcomingMatches.length})
-          {activeMatch && (
-            <span style={{ fontSize: '14px', color: '#f59e0b', marginLeft: '12px' }}>
-              ⚠️ Un match est actif - sélection limitée
-            </span>
-          )}
         </h2>
         <div className="matches-list">
           {upcomingMatches.map(m => (
-            <div key={m.id} className={`match-row ${m.status === 'live' ? 'active-match' : ''}`}>
+            <div key={m.id} className={`match-row ${activeMatch?.id === m.id ? 'active-match' : ''}`}>
               <div className="match-details">
                 <div className="match-name">{m.name}</div>
                 <div className="match-teams">
@@ -365,7 +364,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                 </div>
                 <div className="match-sport">
                   <span className="sport-badge">{m.sport}</span>
-                  {m.status === 'live' && (
+                  {activeMatch?.id === m.id && (
                     <span style={{
                       background: '#dc2626',
                       color: 'white',
@@ -375,7 +374,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                       fontWeight: '600',
                       marginLeft: '8px'
                     }}>
-                      LIVE
+                      ACTIF
                     </span>
                   )}
                 </div>
@@ -387,20 +386,19 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
               <div className="match-actions">
                 <button 
                   onClick={() => handleMatchSelect(m)}
-                  className={m.status === 'live' ? 'success' : 'primary'}
+                  className="primary"
                   disabled={operationState.isSubmitting || (activeMatch && activeMatch.id !== m.id)}
-                  title={m.status === 'live' ? 'Aller à la console de ce match actif' : 
-                         (activeMatch && activeMatch.id !== m.id) ? `Match "${activeMatch.name}" déjà actif` : 
+                  title={activeMatch?.id === m.id ? 'Aller à la console de ce match' : 
+                         (activeMatch && activeMatch.id !== m.id) ? `Impossible - Match "${activeMatch.name}" est actif` : 
                          'Sélectionner ce match'}
                 >
-                  {m.status === 'live' ? '🎮 Console' : 'Sélectionner'}
+                  {activeMatch?.id === m.id ? '🎮 Console' : 'Sélectionner'}
                 </button>
                 <button 
                   onClick={() => openEditModal(m)} 
                   style={{ background: '#f59e0b', borderColor: '#f59e0b', color: 'white' }}
-                  disabled={operationState.isSubmitting || m.status === 'live' || (activeMatch && activeMatch.id !== m.id)}
-                  title={m.status === 'live' ? 'Impossible de modifier un match actif' : 
-                         (activeMatch && activeMatch.id !== m.id) ? `Match "${activeMatch.name}" déjà actif` :
+                  disabled={operationState.isSubmitting}
+                  title={activeMatch?.id === m.id ? 'Modifier ce match actif' :
                          'Modifier ce match'}
                 >
                   ✏️ Modifier
@@ -408,9 +406,8 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate }
                 <button 
                   onClick={() => deleteMatch(m.id)} 
                   className="danger"
-                  disabled={operationState.isSubmitting || m.status === 'live' || (activeMatch && activeMatch.id !== m.id)}
-                  title={m.status === 'live' ? 'Impossible de supprimer un match actif' : 
-                         (activeMatch && activeMatch.id !== m.id) ? `Match "${activeMatch.name}" déjà actif` :
+                  disabled={operationState.isSubmitting || activeMatch?.id === m.id}
+                  title={activeMatch?.id === m.id ? 'Impossible de supprimer un match actif' :
                          'Supprimer ce match définitivement'}
                 >
                   🗑️ Supprimer

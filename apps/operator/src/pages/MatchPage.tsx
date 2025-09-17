@@ -9,22 +9,26 @@ import { supa } from '../supabase';
 interface MatchPageProps {
   match: MatchInfo;
   onBack: () => void;
+  activeMatch: MatchInfo | null;
+  onMatchesUpdate: (matches: MatchInfo[]) => void;
 }
 
-export function MatchPage({ match, onBack }: MatchPageProps) {
+export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: MatchPageProps) {
   const [state, setState] = useState<MatchState | null>(null);
   const [chan, setChan] = useState<any>(null);
   const [displayUrl, setDisplayUrl] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
   const [archiving, setArchiving] = useState(false);
   const [isUnmounting, setIsUnmounting] = useState(false);
-  const [matchStarted, setMatchStarted] = useState(false);
+  
+  // Un match est "démarré" s'il est actif (statut live)
+  const matchStarted = activeMatch?.id === match.id;
 
-  // Marquer le match comme "live" quand il est sélectionné
+  // Marquer le match comme "scheduled" quand il est sélectionné (pas encore actif)
   useEffect(() => {
     if (isUnmounting) return;
     
-    const markAsLive = async () => {
+    const markAsScheduled = async () => {
       try {
         const { data, error } = await supa
           .from('matches')
@@ -44,7 +48,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
         console.error('Erreur inattendue:', err);
       }
     };
-    markAsLive();
+    markAsScheduled();
   }, [match.id]);
 
   useEffect(() => {
@@ -53,7 +57,6 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     const key = `${match.org_id}:${match.id}`;
     const newState = initMatchState(key, match.sport);
     setState(newState);
-    setMatchStarted(false);
     
     if (chan) chan.close();
     
@@ -85,22 +88,7 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
 
     return () => {
       setIsUnmounting(true);
-      // Reset du match quand on quitte la page
-      const resetMatch = async () => {
-        try {
-          console.log('Operator - Reset du match:', match.id);
-          // Remettre le match en "scheduled" et reset l'état
-          await supa.from('matches').update({ 
-            status: 'scheduled',
-            updated_at: new Date().toISOString()
-          }).eq('id', match.id);
-          console.log('Operator - Match remis en scheduled:', match.id);
-        } catch (error) {
-          console.error('Erreur lors du reset du match:', error);
-        }
-      };
-      resetMatch();
-      
+      // Fermer le canal quand on quitte
       if (c) c.close();
     };
   }, [match.id, match.org_slug, match.display_token]);
@@ -115,18 +103,24 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     if (!state || !chan) return;
     if (isUnmounting) return;
     
-    // Détecter si le match a commencé (SEULEMENT quand l'horloge démarre)
+    // Marquer le match comme actif SEULEMENT quand l'horloge démarre
     if (type === 'clock:start') {
-      setMatchStarted(true);
-      
-      // Marquer le match comme "live" dans la base de données
       const markAsLive = async () => {
         try {
-          await supa.from('matches').update({ 
+          const { data, error } = await supa.from('matches').update({ 
             status: 'live',
             updated_at: new Date().toISOString()
           }).eq('id', match.id);
-          console.log('Match marqué comme live après démarrage chrono');
+          
+          if (error) {
+            console.error('Erreur lors du marquage live:', error);
+          } else {
+            console.log('✅ Match marqué comme ACTIF après démarrage chrono');
+            // Mettre à jour la liste des matchs dans le parent
+            const updatedMatch = { ...match, status: 'live' as const };
+            // Simuler une mise à jour de la liste (le parent devra recharger)
+            window.location.reload(); // Solution simple pour rafraîchir l'état global
+          }
         } catch (error) {
           console.error('Erreur lors du marquage live:', error);
         }
@@ -165,7 +159,6 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
       const key = `${match.org_id}:${match.id}`;
       const resetState = initMatchState(key, match.sport);
       setState(resetState);
-      setMatchStarted(false);
       
       // Publier le nouvel état
       if (chan) {
@@ -173,6 +166,11 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
       }
       
       console.log('Match remis à zéro avec succès');
+      
+      // Rafraîchir pour mettre à jour l'état global
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
       
     } catch (err) {
       console.error('Erreur inattendue:', err);
@@ -230,12 +228,25 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
     <div className="match-page">
       <div className="match-header">
         <button onClick={onBack} className="back-button">
-          ← Retour à l'espace
+          ← Retour à la liste
         </button>
         <div className="match-title-section">
           <h1 className="match-title">{match.name}</h1>
           <div className="match-subtitle">
             {match.home_name} vs {match.away_name}
+            {matchStarted && (
+              <span style={{
+                background: '#dc2626',
+                color: 'white',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                marginLeft: '12px'
+              }}>
+                🔴 MATCH ACTIF
+              </span>
+            )}
           </div>
         </div>
         <div className="match-actions">
@@ -290,6 +301,9 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
       <div className="match-info">
         <div className="sport-display">
           <strong>Sport actuel:</strong> <span className="sport-badge">{state.sport}</span>
+          <div style={{ marginTop: '8px', fontSize: '14px', color: '#9aa0a6' }}>
+            <strong>Statut:</strong> {matchStarted ? '🔴 Match actif (temps réel)' : '⏸️ Match sélectionné (prêt)'}
+          </div>
         </div>
       </div>
 
@@ -308,7 +322,13 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
         
         {state.sport !== 'volleyball' && (
           <div className="time-controls">
-            <button className="primary" onClick={() => send('clock:start')}>▶</button>
+            <button 
+              className="primary" 
+              onClick={() => send('clock:start')}
+              title={matchStarted ? "Reprendre le chronomètre" : "Démarrer le match (devient actif)"}
+            >
+              ▶ {matchStarted ? 'Reprendre' : 'Démarrer'}
+            </button>
             <button className="danger" onClick={() => send('clock:stop')}>⏸</button>
             <div className="time-display">
               {Math.floor(state.clock.remainingMs/60000).toString().padStart(2,'0')}:
@@ -330,6 +350,9 @@ export function MatchPage({ match, onBack }: MatchPageProps) {
             <div className="small">
               <div style={{ marginBottom: '8px' }}>
                 <strong>Statut :</strong> <span style={{ color: connectionStatus.includes('connecté') || connectionStatus.includes('prêt') ? '#4ade80' : '#fbbf24' }}>{connectionStatus}</span>
+              </div>
+              <div style={{ marginBottom: '8px', fontSize: '12px', color: '#9aa0a6' }}>
+                {matchStarted ? '🔴 Affichage temps réel actif' : '⏸️ Affichage statique (scores visibles)'}
               </div>
               <strong>Lien Display :</strong> 
               <a href={displayUrl} target="_blank" rel="noopener noreferrer">

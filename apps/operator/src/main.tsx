@@ -172,7 +172,7 @@ function App() {
   }
 
   // Fonction simple pour sélectionner un match
-  function handleMatchSelect(match: MatchInfo) {
+  const handleMatchSelect = useCallback((match: MatchInfo) => {
     console.log('🎯 Sélection du match:', match.name);
     setSelectedMatch(match);
   }, []);
@@ -190,7 +190,7 @@ function App() {
   }, []);
 
   // Écran de chargement
-  const handleMatchSelect = useCallback((match: MatchInfo) => {
+  if (loading) {
     return (
       <div style={{
         display: 'flex',

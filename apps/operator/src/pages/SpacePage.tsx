@@ -73,7 +73,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
     return { upcomingMatches: upcoming, archivedMatches: archived };
   }, [matches]);
 
-  // Fonctions utilitaires
+  // Fonction pour afficher les messages (stable)
   const setMessage = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setOperationState(prev => ({ ...prev, message, messageType: type }));
     if (message) {
@@ -83,11 +83,13 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
     }
   }, []);
 
+  // Fonction pour réinitialiser le formulaire (stable)
   const resetForm = useCallback(() => {
     setFormData(initialFormData);
     setOperationState(prev => ({ ...prev, message: '' }));
   }, []);
 
+  // Fonctions de modal (stables)
   const openCreateModal = useCallback(() => {
     resetForm();
     setModalState({ type: 'create', editingId: null });

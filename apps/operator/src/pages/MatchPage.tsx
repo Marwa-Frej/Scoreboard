@@ -19,47 +19,25 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
   const [displayUrl, setDisplayUrl] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
   const [archiving, setArchiving] = useState(false);
-  const [isUnmounting, setIsUnmounting] = useState(false);
   
   // Un match est "démarré" s'il est actif (statut live)
   const matchStarted = activeMatch?.id === match.id;
 
-  // Marquer le match comme "scheduled" quand il est sélectionné (pas encore actif)
+  // Initialisation du match et du canal (une seule fois)
   useEffect(() => {
-    if (isUnmounting) return;
-    
-    const markAsScheduled = async () => {
-      try {
-        const { data, error } = await supa
-          .from('matches')
-          .update({ 
-            status: 'scheduled',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', match.id)
-          .select('*');
-        
-        if (error) {
-          console.error('Erreur lors du marquage scheduled:', error);
-        } else {
-          console.log('Match marqué comme scheduled:', data);
-        }
-      } catch (err) {
-        console.error('Erreur inattendue:', err);
-      }
-    };
-    markAsScheduled();
-  }, [match.id]);
-
-  useEffect(() => {
-    if (isUnmounting) return;
+    console.log('🎮 MatchPage - Initialisation pour match:', match.id);
     
     const key = `${match.org_id}:${match.id}`;
     const newState = initMatchState(key, match.sport);
     setState(newState);
     
-    if (chan) chan.close();
+    // Fermer le canal précédent s'il existe
+    if (chan) {
+      console.log('🔌 Fermeture du canal précédent');
+      chan.close();
+    }
     
+    // Créer le nouveau canal
     const c = createOperatorChannel(
       match.org_slug || 'org', 
       match.id, 
@@ -67,16 +45,17 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       () => {
         console.log('Display demande l\'état du match');
         setConnectionStatus('Display connecté');
-        if (newState) c.publish(newState, match); 
+        c.publish(newState, match); 
       }, 
       () => {
         console.log('Canal opérateur connecté');
         setConnectionStatus('Canal prêt');
-        if (newState) c.publish(newState, match); 
+        c.publish(newState, match); 
       }
     );
     setChan(c);
     
+    // Construire l'URL du display
     const u = new URL('http://localhost:5174/'); 
     u.searchParams.set('org', match.org_slug || 'org'); 
     u.searchParams.set('match', match.id); 
@@ -86,40 +65,56 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     u.searchParams.set('ui', '1'); 
     setDisplayUrl(u.toString());
 
-    return () => {
-      setIsUnmounting(true);
-      // Fermer le canal quand on quitte
-      if (c) c.close();
+    // Marquer le match comme "scheduled" si nécessaire
+    const markAsScheduled = async () => {
+      try {
+        await supa
+          .from('matches')
+          .update({ 
+            status: 'scheduled',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', match.id);
+        console.log('✅ Match marqué comme scheduled');
+      } catch (err) {
+        console.error('❌ Erreur marquage scheduled:', err);
+      }
     };
-  }, [match.id, match.org_slug, match.display_token]);
+    markAsScheduled();
 
+    // Cleanup à la fermeture
+    return () => {
+      console.log('🧹 Nettoyage MatchPage');
+      c.close();
+    };
+  }, [match.id]); // Dépendance uniquement sur match.id
+
+  // Gestion du tick du chronomètre
   useEffect(() => { 
     if (!state?.matchId) return; 
+    console.log('⏰ Démarrage du tick pour:', state.matchId);
     const id = setInterval(() => setState(prev => prev ? applyTick(prev) : prev), 100); 
-    return () => clearInterval(id); 
+    return () => {
+      console.log('⏰ Arrêt du tick');
+      clearInterval(id);
+    }; 
   }, [state?.matchId]);
 
-  function send(type: string, payload?: any) {
+  // Fonction d'envoi d'actions (stable)
+  const send = useCallback((type: string, payload?: any) => {
     if (!state || !chan) return;
-    if (isUnmounting) return;
     
     // Marquer le match comme actif SEULEMENT quand l'horloge démarre
     if (type === 'clock:start') {
       const markAsLive = async () => {
         try {
-          const { data, error } = await supa.from('matches').update({ 
+          await supa.from('matches').update({ 
             status: 'live',
             updated_at: new Date().toISOString()
           }).eq('id', match.id);
-          
-          if (error) {
-            console.error('Erreur lors du marquage live:', error);
-          } else {
-            console.log('✅ Match marqué comme ACTIF après démarrage chrono');
-            // Le match est maintenant marqué comme live dans la base
-          }
+          console.log('✅ Match marqué comme ACTIF');
         } catch (error) {
-          console.error('Erreur lors du marquage live:', error);
+          console.error('❌ Erreur marquage live:', error);
         }
       };
       markAsLive();
@@ -127,11 +122,12 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     
     const next = reduce(state, { type, payload });
     setState(next);
-    console.log('Envoi état vers Display:', { type, payload, state: next });
+    console.log('📡 Envoi état vers Display:', { type, payload });
     chan.publish(next, match);
-  }
+  }, [state, chan, match]);
 
-  async function resetMatch() {
+  // Fonction de reset du match (stable)
+  const resetMatch = useCallback(async () => {
     if (!confirm('Êtes-vous sûr de vouloir remettre ce match à zéro ? Cela arrêtera le chronomètre et remettra les scores à 0.')) {
       return;
     }
@@ -170,9 +166,10 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       console.error('Erreur inattendue:', err);
       alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
     }
-  }
+  }, [match, chan]);
 
-  async function archiveMatch() {
+  // Fonction d'archivage (stable)
+  const archiveMatch = useCallback(async () => {
     if (matchStarted) {
       alert('Impossible d\'archiver un match qui a été démarré. Veuillez d\'abord le remettre à zéro ou attendre qu\'il soit terminé.');
       return;
@@ -206,7 +203,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
     }
     setArchiving(false);
-  }
+  }, [matchStarted, match.id, chan, onBack]);
 
   if (!state) {
     return (

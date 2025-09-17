@@ -175,13 +175,13 @@ function App() {
   function handleMatchSelect(match: MatchInfo) {
     console.log('🎯 Sélection du match:', match.name);
     setSelectedMatch(match);
-  }
+  }, []);
 
   // Fonction simple pour retourner à la liste
-  function handleBackToList() {
+  const handleBackToList = useCallback(() => {
     console.log('🔙 Retour à la liste des matchs');
     setSelectedMatch(null);
-  }
+  }, []);
 
   // Fonction pour mettre à jour la liste des matchs
   const handleMatchesUpdate = useCallback((updatedMatches: MatchInfo[]) => {
@@ -190,7 +190,7 @@ function App() {
   }, []);
 
   // Écran de chargement
-  if (loading) {
+  const handleMatchSelect = useCallback((match: MatchInfo) => {
     return (
       <div style={{
         display: 'flex',

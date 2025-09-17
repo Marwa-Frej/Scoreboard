@@ -109,7 +109,7 @@ function App() {
         .from('matches')
         .select('*')
         .eq('org_id', orgId)
-        .order('scheduled_at', { ascending: false });
+        .order('scheduled_at', { ascending: true });
 
       if (error) {
         console.error('❌ Matches - Erreur:', error);

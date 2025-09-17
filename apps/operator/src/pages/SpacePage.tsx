@@ -62,8 +62,14 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
 
   // Mémorisation des matchs pour éviter les re-calculs
   const { upcomingMatches, archivedMatches } = useMemo(() => {
-    const upcoming = matches.filter(m => m.status === 'scheduled' || m.status === 'live');
-    const archived = matches.filter(m => m.status === 'finished' || m.status === 'archived');
+    const upcoming = matches
+      .filter(m => m.status === 'scheduled' || m.status === 'live')
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+    
+    const archived = matches
+      .filter(m => m.status === 'finished' || m.status === 'archived')
+      .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
+    
     return { upcomingMatches: upcoming, archivedMatches: archived };
   }, [matches]);
 

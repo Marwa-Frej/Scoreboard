@@ -59,6 +59,7 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
     message: '',
     messageType: 'info'
   });
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Mémorisation des matchs pour éviter les re-calculs
   const { upcomingMatches, archivedMatches } = useMemo(() => {
@@ -291,8 +292,13 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
   const handleMatchSelect = useCallback((match: MatchInfo) => {
     console.log('🎯 Tentative de sélection:', match.name, 'Match actif:', activeMatch?.name || 'Aucun');
     
-    console.log('✅ Sélection autorisée');
-    onMatchSelect(match);
+    if (!isNavigating) {
+      setIsNavigating(true);
+      console.log('✅ Sélection autorisée');
+      onMatchSelect(match);
+      // Reset le flag après un délai
+      setTimeout(() => setIsNavigating(false), 100);
+    }
   }, [onMatchSelect, activeMatch]);
 
   // Rendu stable
@@ -381,12 +387,12 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
                 <button 
                   onClick={() => handleMatchSelect(m)}
                   className="primary"
-                  disabled={operationState.isSubmitting || (activeMatch && activeMatch.id !== m.id)}
+                  disabled={operationState.isSubmitting || isNavigating || (activeMatch && activeMatch.id !== m.id)}
                   title={activeMatch?.id === m.id ? 'Aller à la console de ce match' : 
                          (activeMatch && activeMatch.id !== m.id) ? `Impossible - Match "${activeMatch.name}" est actif` : 
                          'Sélectionner ce match'}
                 >
-                  {activeMatch?.id === m.id ? '🎮 Console' : 'Sélectionner'}
+                  {isNavigating ? '⏳' : (activeMatch?.id === m.id ? '🎮 Console' : 'Sélectionner')}
                 </button>
                 <button 
                   onClick={() => openEditModal(m)} 

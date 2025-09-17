@@ -29,9 +29,11 @@ function App() {
   // Détecter le match actif dans la liste des matchs
   useEffect(() => {
     const liveMatch = matches.find(m => m.status === 'live');
-    setActiveMatch(liveMatch || null);
-    console.log('🎯 Match actif détecté:', liveMatch?.name || 'Aucun');
-  }, [matches]);
+    if (activeMatch?.id !== liveMatch?.id) {
+      setActiveMatch(liveMatch || null);
+      console.log('🎯 Match actif détecté:', liveMatch?.name || 'Aucun');
+    }
+  }, [matches, activeMatch?.id]);
 
   async function checkSession() {
     try {

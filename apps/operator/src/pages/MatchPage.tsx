@@ -325,9 +325,13 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
             <button 
               className="primary" 
               onClick={() => send('clock:start')}
-              title={matchStarted ? "Reprendre le chronomètre" : "Démarrer le match (devient actif)"}
+              title={state.clock.running ? "Le chronomètre tourne déjà" : 
+                     (state.clock.remainingMs < state.clock.durationSec * 1000) ? "Reprendre le chronomètre" : 
+                     "Démarrer le match (devient actif)"}
+              disabled={state.clock.running}
             >
-              ▶ {matchStarted ? 'Reprendre' : 'Démarrer'}
+              ▶ {state.clock.running ? 'En cours...' : 
+                  (state.clock.remainingMs < state.clock.durationSec * 1000) ? 'Reprendre' : 'Démarrer'}
             </button>
             <button className="danger" onClick={() => send('clock:stop')}>⏸</button>
             <div className="time-display">

@@ -116,10 +116,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
             console.error('Erreur lors du marquage live:', error);
           } else {
             console.log('✅ Match marqué comme ACTIF après démarrage chrono');
-            // Mettre à jour la liste des matchs dans le parent
-            const updatedMatch = { ...match, status: 'live' as const };
-            // Simuler une mise à jour de la liste (le parent devra recharger)
-            window.location.reload(); // Solution simple pour rafraîchir l'état global
+            // Le match est maintenant marqué comme live dans la base
           }
         } catch (error) {
           console.error('Erreur lors du marquage live:', error);
@@ -167,10 +164,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       
       console.log('Match remis à zéro avec succès');
       
-      // Rafraîchir pour mettre à jour l'état global
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      // Le match est maintenant remis à zéro
       
     } catch (err) {
       console.error('Erreur inattendue:', err);

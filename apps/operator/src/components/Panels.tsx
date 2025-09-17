@@ -53,34 +53,52 @@ function FootballPanel({send}:{send:(a:string,p?:any)=>void}){
   return (
     <div className="match-controls">
       <ControlSection title="Buts">
-        <button className="success" onClick={()=>send('fb:goal',{team:'home'})}>⚽ But Équipe A</button>
-        <button className="success" onClick={()=>send('fb:goal',{team:'away'})}>⚽ But Équipe B</button>
+        <ControlGrid cols="two-col">
+          <button className="success" onClick={()=>send('fb:goal',{team:'home'})}>⚽ +1 Équipe A</button>
+          <button className="danger" onClick={()=>send('fb:goal:dec',{team:'home'})}>❌ -1 Équipe A</button>
+          <button className="success" onClick={()=>send('fb:goal',{team:'away'})}>⚽ +1 Équipe B</button>
+          <button className="danger" onClick={()=>send('fb:goal:dec',{team:'away'})}>❌ -1 Équipe B</button>
+        </ControlGrid>
       </ControlSection>
       
       <ControlSection title="Cartons Équipe A">
-        <button style={{background:'#fbbf24'}} onClick={()=>send('fb:card',{team:'home',color:'yellow'})}>🟨 Jaune</button>
-        <button className="danger" onClick={()=>send('fb:card',{team:'home',color:'red'})}>🟥 Rouge</button>
+        <ControlGrid cols="two-col">
+          <button style={{background:'#fbbf24'}} onClick={()=>send('fb:card',{team:'home',color:'yellow'})}>🟨 +1 Jaune</button>
+          <button style={{background:'#d97706'}} onClick={()=>send('fb:card:dec',{team:'home',color:'yellow'})}>🟨 -1 Jaune</button>
+          <button className="danger" onClick={()=>send('fb:card',{team:'home',color:'red'})}>🟥 +1 Rouge</button>
+          <button style={{background:'#991b1b'}} onClick={()=>send('fb:card:dec',{team:'home',color:'red'})}>🟥 -1 Rouge</button>
+        </ControlGrid>
       </ControlSection>
       
       <ControlSection title="Cartons Équipe B">
-        <button style={{background:'#fbbf24'}} onClick={()=>send('fb:card',{team:'away',color:'yellow'})}>🟨 Jaune</button>
-        <button className="danger" onClick={()=>send('fb:card',{team:'away',color:'red'})}>🟥 Rouge</button>
+        <ControlGrid cols="two-col">
+          <button style={{background:'#fbbf24'}} onClick={()=>send('fb:card',{team:'away',color:'yellow'})}>🟨 +1 Jaune</button>
+          <button style={{background:'#d97706'}} onClick={()=>send('fb:card:dec',{team:'away',color:'yellow'})}>🟨 -1 Jaune</button>
+          <button className="danger" onClick={()=>send('fb:card',{team:'away',color:'red'})}>🟥 +1 Rouge</button>
+          <button style={{background:'#991b1b'}} onClick={()=>send('fb:card:dec',{team:'away',color:'red'})}>🟥 -1 Rouge</button>
+        </ControlGrid>
       </ControlSection>
       
       <ControlSection title="Temps additionnel">
-        <button onClick={()=>send('fb:stoppage',{minutes:1})}>+1 min</button>
-        <button onClick={()=>send('fb:stoppage',{minutes:2})}>+2 min</button>
-        <button onClick={()=>send('fb:stoppage',{minutes:3})}>+3 min</button>
-        <button onClick={()=>send('fb:stoppage',{minutes:0})}>Reset</button>
+        <ControlGrid cols="two-col">
+          <button onClick={()=>send('fb:stoppage',{minutes:1})}>+1 min</button>
+          <button onClick={()=>send('fb:stoppage:dec')}>-1 min</button>
+          <button onClick={()=>send('fb:stoppage',{minutes:2})}>+2 min</button>
+          <button onClick={()=>send('fb:stoppage',{minutes:3})}>+3 min</button>
+          <button onClick={()=>send('fb:stoppage',{minutes:0})}>Reset</button>
+        </ControlGrid>
       </ControlSection>
       
       <ControlSection title="Tirs au but">
         <button onClick={()=>send('fb:so:start')}>Démarrer TAB</button>
-        <ControlGrid cols="two-col">
+        <ControlGrid cols="four-col">
           <button className="success" onClick={()=>send('fb:so:record',{team:'home',res:'G'})}>A ✅</button>
           <button className="danger" onClick={()=>send('fb:so:record',{team:'home',res:'M'})}>A ❌</button>
+          <button style={{background:'#6b7280'}} onClick={()=>send('fb:so:undo',{team:'home'})}>A ↶</button>
+          <div></div>
           <button className="success" onClick={()=>send('fb:so:record',{team:'away',res:'G'})}>B ✅</button>
           <button className="danger" onClick={()=>send('fb:so:record',{team:'away',res:'M'})}>B ❌</button>
+          <button style={{background:'#6b7280'}} onClick={()=>send('fb:so:undo',{team:'away'})}>B ↶</button>
         </ControlGrid>
       </ControlSection>
     </div>
@@ -90,14 +108,31 @@ function FootballPanel({send}:{send:(a:string,p?:any)=>void}){
 function HandballPanel({send}:{send:(a:string,p?:any)=>void}){
   return (
     <div className="match-controls">
+      <ControlSection title="Buts">
+        <ControlGrid cols="two-col">
+          <button className="success" onClick={()=>send('hb:goal',{team:'home'})}>🥅 +1 Équipe A</button>
+          <button className="danger" onClick={()=>send('hb:goal:dec',{team:'home'})}>❌ -1 Équipe A</button>
+          <button className="success" onClick={()=>send('hb:goal',{team:'away'})}>🥅 +1 Équipe B</button>
+          <button className="danger" onClick={()=>send('hb:goal:dec',{team:'away'})}>❌ -1 Équipe B</button>
+        </ControlGrid>
+      </ControlSection>
+      
       <ControlSection title="Temps morts">
-        <button onClick={()=>send('hb:timeout',{team:'home'})}>⏱ TO Équipe A</button>
-        <button onClick={()=>send('hb:timeout',{team:'away'})}>⏱ TO Équipe B</button>
+        <ControlGrid cols="two-col">
+          <button onClick={()=>send('hb:timeout',{team:'home'})}>⏱ +1 TO Équipe A</button>
+          <button onClick={()=>send('hb:timeout:dec',{team:'home'})}>⏱ -1 TO Équipe A</button>
+          <button onClick={()=>send('hb:timeout',{team:'away'})}>⏱ +1 TO Équipe B</button>
+          <button onClick={()=>send('hb:timeout:dec',{team:'away'})}>⏱ -1 TO Équipe B</button>
+        </ControlGrid>
       </ControlSection>
       
       <ControlSection title="Exclusions 2 minutes">
-        <button className="danger" onClick={()=>send('hb:susp',{team:'home',minutes:2})}>2' Équipe A</button>
-        <button className="danger" onClick={()=>send('hb:susp',{team:'away',minutes:2})}>2' Équipe B</button>
+        <ControlGrid cols="two-col">
+          <button className="danger" onClick={()=>send('hb:susp',{team:'home',minutes:2})}>2' +1 Équipe A</button>
+          <button style={{background:'#991b1b'}} onClick={()=>send('hb:susp:remove',{team:'home'})}>2' -1 Équipe A</button>
+          <button className="danger" onClick={()=>send('hb:susp',{team:'away',minutes:2})}>2' +1 Équipe B</button>
+          <button style={{background:'#991b1b'}} onClick={()=>send('hb:susp:remove',{team:'away'})}>2' -1 Équipe B</button>
+        </ControlGrid>
       </ControlSection>
     </div>
   );
@@ -107,10 +142,31 @@ function BasketPanel({state, send}:{state:MatchState, send:(a:string,p?:any)=>vo
   const meta:any = (state as any).meta || {};
   return (
     <div className="match-controls">
+      <ControlSection title="Points">
+        <ControlGrid cols="three-col">
+          <button className="success" onClick={()=>send('bb:score',{team:'home',points:1})}>+1 Équipe A</button>
+          <button className="success" onClick={()=>send('bb:score',{team:'home',points:2})}>+2 Équipe A</button>
+          <button className="success" onClick={()=>send('bb:score',{team:'home',points:3})}>+3 Équipe A</button>
+          <button className="danger" onClick={()=>send('bb:score:dec',{team:'home',points:1})}>-1 Équipe A</button>
+          <button className="danger" onClick={()=>send('bb:score:dec',{team:'home',points:2})}>-2 Équipe A</button>
+          <button className="danger" onClick={()=>send('bb:score:dec',{team:'home',points:3})}>-3 Équipe A</button>
+          <button className="success" onClick={()=>send('bb:score',{team:'away',points:1})}>+1 Équipe B</button>
+          <button className="success" onClick={()=>send('bb:score',{team:'away',points:2})}>+2 Équipe B</button>
+          <button className="success" onClick={()=>send('bb:score',{team:'away',points:3})}>+3 Équipe B</button>
+          <button className="danger" onClick={()=>send('bb:score:dec',{team:'away',points:1})}>-1 Équipe B</button>
+          <button className="danger" onClick={()=>send('bb:score:dec',{team:'away',points:2})}>-2 Équipe B</button>
+          <button className="danger" onClick={()=>send('bb:score:dec',{team:'away',points:3})}>-3 Équipe B</button>
+        </ControlGrid>
+      </ControlSection>
+      
       <ControlSection title="Temps morts">
-        <button onClick={()=>send('bb:to',{team:'home'})}>⏱ TO Équipe A</button>
-        <button onClick={()=>send('bb:to',{team:'away'})}>⏱ TO Équipe B</button>
-        <button onClick={()=>send('bb:tf:reset')}>Reset Fautes équipe</button>
+        <ControlGrid cols="two-col">
+          <button onClick={()=>send('bb:to',{team:'home'})}>⏱ Utiliser TO A</button>
+          <button onClick={()=>send('bb:to:restore',{team:'home'})}>⏱ Restaurer TO A</button>
+          <button onClick={()=>send('bb:to',{team:'away'})}>⏱ Utiliser TO B</button>
+          <button onClick={()=>send('bb:to:restore',{team:'away'})}>⏱ Restaurer TO B</button>
+          <button onClick={()=>send('bb:tf:reset')}>Reset Fautes équipe</button>
+        </ControlGrid>
       </ControlSection>
       
       <ControlSection title="Horloge des 24 secondes">
@@ -123,10 +179,16 @@ function BasketPanel({state, send}:{state:MatchState, send:(a:string,p?:any)=>vo
       <ControlSection title="Fautes joueurs Équipe A">
         <ControlGrid cols="three-col">
           {meta.roster?.home?.map((p:any,i:number)=>(
-            <button key={i} onClick={()=>send('bb:foul',{team:'home', index:i})} 
-                    style={{background: p.fouls >= 5 ? '#dc2626' : p.fouls >= 3 ? '#f59e0b' : '#121316'}}>
-              #{p.num} ({p.fouls})
-            </button>
+            <div key={i} style={{display:'flex', flexDirection:'column', gap:'4px'}}>
+              <button onClick={()=>send('bb:foul',{team:'home', index:i})} 
+                      style={{background: p.fouls >= 5 ? '#dc2626' : p.fouls >= 3 ? '#f59e0b' : '#16a34a'}}>
+                #{p.num} +1 ({p.fouls})
+              </button>
+              <button onClick={()=>send('bb:foul:dec',{team:'home', index:i})} 
+                      style={{background: '#991b1b', fontSize:'12px', padding:'4px'}}>
+                -1
+              </button>
+            </div>
           ))}
         </ControlGrid>
       </ControlSection>
@@ -134,10 +196,16 @@ function BasketPanel({state, send}:{state:MatchState, send:(a:string,p?:any)=>vo
       <ControlSection title="Fautes joueurs Équipe B">
         <ControlGrid cols="three-col">
           {meta.roster?.away?.map((p:any,i:number)=>(
-            <button key={i} onClick={()=>send('bb:foul',{team:'away', index:i})}
-                    style={{background: p.fouls >= 5 ? '#dc2626' : p.fouls >= 3 ? '#f59e0b' : '#121316'}}>
-              #{p.num} ({p.fouls})
-            </button>
+            <div key={i} style={{display:'flex', flexDirection:'column', gap:'4px'}}>
+              <button onClick={()=>send('bb:foul',{team:'away', index:i})}
+                      style={{background: p.fouls >= 5 ? '#dc2626' : p.fouls >= 3 ? '#f59e0b' : '#16a34a'}}>
+                #{p.num} +1 ({p.fouls})
+              </button>
+              <button onClick={()=>send('bb:foul:dec',{team:'away', index:i})} 
+                      style={{background: '#991b1b', fontSize:'12px', padding:'4px'}}>
+                -1
+              </button>
+            </div>
           ))}
         </ControlGrid>
       </ControlSection>
@@ -148,14 +216,29 @@ function BasketPanel({state, send}:{state:MatchState, send:(a:string,p?:any)=>vo
 function HockeyIcePanel({send}:{send:(a:string,p?:any)=>void}){
   return (
     <div className="match-controls">
+      <ControlSection title="Buts">
+        <ControlGrid cols="two-col">
+          <button className="success" onClick={()=>send('hi:goal',{team:'home'})}>🏒 +1 Équipe A</button>
+          <button className="danger" onClick={()=>send('hi:goal:dec',{team:'home'})}>❌ -1 Équipe A</button>
+          <button className="success" onClick={()=>send('hi:goal',{team:'away'})}>🏒 +1 Équipe B</button>
+          <button className="danger" onClick={()=>send('hi:goal:dec',{team:'away'})}>❌ -1 Équipe B</button>
+        </ControlGrid>
+      </ControlSection>
+      
       <ControlSection title="Pénalités Équipe A">
-        <button className="danger" onClick={()=>send('hi:penalty',{team:'home',minutes:2})}>2 min</button>
-        <button className="danger" onClick={()=>send('hi:penalty',{team:'home',minutes:5})}>5 min</button>
+        <ControlGrid cols="three-col">
+          <button className="danger" onClick={()=>send('hi:penalty',{team:'home',minutes:2})}>+1 Pén 2min</button>
+          <button className="danger" onClick={()=>send('hi:penalty',{team:'home',minutes:5})}>+1 Pén 5min</button>
+          <button style={{background:'#991b1b'}} onClick={()=>send('hi:penalty:remove',{team:'home'})}>-1 Pénalité</button>
+        </ControlGrid>
       </ControlSection>
       
       <ControlSection title="Pénalités Équipe B">
-        <button className="danger" onClick={()=>send('hi:penalty',{team:'away',minutes:2})}>2 min</button>
-        <button className="danger" onClick={()=>send('hi:penalty',{team:'away',minutes:5})}>5 min</button>
+        <ControlGrid cols="three-col">
+          <button className="danger" onClick={()=>send('hi:penalty',{team:'away',minutes:2})}>+1 Pén 2min</button>
+          <button className="danger" onClick={()=>send('hi:penalty',{team:'away',minutes:5})}>+1 Pén 5min</button>
+          <button style={{background:'#991b1b'}} onClick={()=>send('hi:penalty:remove',{team:'away'})}>-1 Pénalité</button>
+        </ControlGrid>
       </ControlSection>
     </div>
   );
@@ -164,16 +247,35 @@ function HockeyIcePanel({send}:{send:(a:string,p?:any)=>void}){
 function HockeyFieldPanel({send}:{send:(a:string,p?:any)=>void}){
   return (
     <div className="match-controls">
+      <ControlSection title="Buts">
+        <ControlGrid cols="two-col">
+          <button className="success" onClick={()=>send('hf:goal',{team:'home'})}>🏑 +1 Équipe A</button>
+          <button className="danger" onClick={()=>send('hf:goal:dec',{team:'home'})}>❌ -1 Équipe A</button>
+          <button className="success" onClick={()=>send('hf:goal',{team:'away'})}>🏑 +1 Équipe B</button>
+          <button className="danger" onClick={()=>send('hf:goal:dec',{team:'away'})}>❌ -1 Équipe B</button>
+        </ControlGrid>
+      </ControlSection>
+      
       <ControlSection title="Cartes Équipe A">
-        <button style={{background:'#16a34a'}} onClick={()=>send('hf:card',{team:'home',color:'green'})}>🟩 Verte</button>
-        <button style={{background:'#fbbf24'}} onClick={()=>send('hf:card',{team:'home',color:'yellow'})}>🟨 Jaune</button>
-        <button className="danger" onClick={()=>send('hf:card',{team:'home',color:'red'})}>🟥 Rouge</button>
+        <ControlGrid cols="two-col">
+          <button style={{background:'#16a34a'}} onClick={()=>send('hf:card',{team:'home',color:'green'})}>🟩 +1 Verte</button>
+          <button style={{background:'#15803d'}} onClick={()=>send('hf:card:dec',{team:'home',color:'green'})}>🟩 -1 Verte</button>
+          <button style={{background:'#fbbf24'}} onClick={()=>send('hf:card',{team:'home',color:'yellow'})}>🟨 +1 Jaune</button>
+          <button style={{background:'#d97706'}} onClick={()=>send('hf:card:dec',{team:'home',color:'yellow'})}>🟨 -1 Jaune</button>
+          <button className="danger" onClick={()=>send('hf:card',{team:'home',color:'red'})}>🟥 +1 Rouge</button>
+          <button style={{background:'#991b1b'}} onClick={()=>send('hf:card:dec',{team:'home',color:'red'})}>🟥 -1 Rouge</button>
+        </ControlGrid>
       </ControlSection>
       
       <ControlSection title="Cartes Équipe B">
-        <button style={{background:'#16a34a'}} onClick={()=>send('hf:card',{team:'away',color:'green'})}>🟩 Verte</button>
-        <button style={{background:'#fbbf24'}} onClick={()=>send('hf:card',{team:'away',color:'yellow'})}>🟨 Jaune</button>
-        <button className="danger" onClick={()=>send('hf:card',{team:'away',color:'red'})}>🟥 Rouge</button>
+        <ControlGrid cols="two-col">
+          <button style={{background:'#16a34a'}} onClick={()=>send('hf:card',{team:'away',color:'green'})}>🟩 +1 Verte</button>
+          <button style={{background:'#15803d'}} onClick={()=>send('hf:card:dec',{team:'away',color:'green'})}>🟩 -1 Verte</button>
+          <button style={{background:'#fbbf24'}} onClick={()=>send('hf:card',{team:'away',color:'yellow'})}>🟨 +1 Jaune</button>
+          <button style={{background:'#d97706'}} onClick={()=>send('hf:card:dec',{team:'away',color:'yellow'})}>🟨 -1 Jaune</button>
+          <button className="danger" onClick={()=>send('hf:card',{team:'away',color:'red'})}>🟥 +1 Rouge</button>
+          <button style={{background:'#991b1b'}} onClick={()=>send('hf:card:dec',{team:'away',color:'red'})}>🟥 -1 Rouge</button>
+        </ControlGrid>
       </ControlSection>
     </div>
   );
@@ -182,6 +284,34 @@ function HockeyFieldPanel({send}:{send:(a:string,p?:any)=>void}){
 function VolleyballPanel({send}:{send:(a:string,p?:any)=>void}){
   return (
     <div className="match-controls">
+      <ControlSection title="Points">
+        <ControlGrid cols="two-col">
+          <button className="success" onClick={()=>send('vb:point',{team:'home'})}>🏐 +1 Équipe A</button>
+          <button className="danger" onClick={()=>send('vb:point:dec',{team:'home'})}>❌ -1 Équipe A</button>
+          <button className="success" onClick={()=>send('vb:point',{team:'away'})}>🏐 +1 Équipe B</button>
+          <button className="danger" onClick={()=>send('vb:point:dec',{team:'away'})}>❌ -1 Équipe B</button>
+        </ControlGrid>
+      </ControlSection>
+      
+      <ControlSection title="Service">
+        <ControlGrid cols="two-col">
+          <button onClick={()=>send('vb:serve',{team:'home'})}>🏐 Service A</button>
+          <button onClick={()=>send('vb:serve',{team:'away'})}>🏐 Service B</button>
+        </ControlGrid>
+      </ControlSection>
+      
+      <ControlSection title="Temps morts">
+        <ControlGrid cols="two-col">
+          <button onClick={()=>send('vb:timeout',{team:'home'})}>⏱ +1 TO Équipe A</button>
+          <button onClick={()=>send('vb:timeout:dec',{team:'home'})}>⏱ -1 TO Équipe A</button>
+          <button onClick={()=>send('vb:timeout',{team:'away'})}>⏱ +1 TO Équipe B</button>
+          <button onClick={()=>send('vb:timeout:dec',{team:'away'})}>⏱ -1 TO Équipe B</button>
+        </ControlGrid>
+      </ControlSection>
+      
+      <ControlSection title="Gestion des sets">
+        <button onClick={()=>send('vb:nextSet')}>Valider le set</button>
+      </ControlSection>
     </div>
   );
 }

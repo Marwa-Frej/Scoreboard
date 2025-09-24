@@ -15,6 +15,7 @@ interface MatchPageProps {
 
 export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: MatchPageProps) {
   console.log('🎮 MatchPage - Rendu avec match:', match?.name || 'UNDEFINED');
+  console.log('🎮 MatchPage - Score actuel:', state?.score || 'Pas encore chargé');
   
   const [state, setState] = useState<MatchState | null>(null);
   const [chan, setChan] = useState<any>(null);
@@ -118,7 +119,15 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     if (!state?.matchId) return; 
     console.log('⏰ Démarrage du tick pour:', state.matchId);
     const id = setInterval(() => {
-      setState(prev => prev ? applyTick(prev) : prev);
+      setState(prev => {
+        if (!prev) return prev;
+        const newState = applyTick(prev);
+        // Éviter les re-rendus si rien n'a changé
+        if (JSON.stringify(newState) === JSON.stringify(prev)) {
+          return prev;
+        }
+        return newState;
+      });
     }, 100); 
     return () => {
       console.log('⏰ Arrêt du tick');

@@ -187,9 +187,7 @@ function App() {
     console.log('🎯 Main - Après setSelectedMatch');
   }, [selectedMatch, activeMatch]);
 
-  // Fonction simple pour retourner à la liste
   const handleBackToList = useCallback(() => {
-    console.log('🔙 Retour à la liste des matchs');
     console.log('🔙 Main - Avant setSelectedMatch(null), selectedMatch actuel:', selectedMatch?.name || 'null');
     
     // Si un match est actif, on peut revenir à la liste mais on garde le match sélectionné
@@ -201,7 +199,6 @@ function App() {
     console.log('🔙 Main - Après setSelectedMatch(null)');
   }, [selectedMatch, activeMatch]);
 
-  // Fonction pour mettre à jour la liste des matchs
   const handleMatchesUpdate = useCallback((updatedMatches: MatchInfo[]) => {
     console.log('📋 Mise à jour des matchs:', updatedMatches.length);
     setMatches(updatedMatches);

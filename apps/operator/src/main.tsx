@@ -19,7 +19,7 @@ function App() {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Calculer le match actif de manière simple
+  // Un match est actif seulement s'il a le statut 'live' (chronomètre démarré)
   const activeMatch = matches.find(m => m.status === 'live') || null;
 
   // Vérifier la session au démarrage

@@ -142,6 +142,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     
     // Marquer le match comme actif SEULEMENT quand l'horloge démarre
     if (type === 'clock:start') {
+      console.log('🔴 Démarrage du match - Marquage comme ACTIF');
       const markAsLive = async () => {
         try {
           await supa.from('matches').update({ 
@@ -149,11 +150,46 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
             updated_at: new Date().toISOString()
           }).eq('id', match.id);
           console.log('✅ Match marqué comme ACTIF');
+          // Recharger les matchs pour mettre à jour la liste
+          const { data: updatedMatches } = await supa
+            .from('matches')
+            .select('*')
+            .eq('org_id', match.org_id)
+            .order('scheduled_at', { ascending: true });
+          if (updatedMatches) {
+            onMatchesUpdate(updatedMatches as any);
+          }
         } catch (error) {
           console.error('❌ Erreur marquage live:', error);
         }
       };
       markAsLive();
+    }
+    
+    // Marquer le match comme non-actif quand l'horloge s'arrête
+    if (type === 'clock:stop') {
+      console.log('⏸️ Arrêt du match - Marquage comme SCHEDULED');
+      const markAsScheduled = async () => {
+        try {
+          await supa.from('matches').update({ 
+            status: 'scheduled',
+            updated_at: new Date().toISOString()
+          }).eq('id', match.id);
+          console.log('✅ Match marqué comme SCHEDULED');
+          // Recharger les matchs pour mettre à jour la liste
+          const { data: updatedMatches } = await supa
+            .from('matches')
+            .select('*')
+            .eq('org_id', match.org_id)
+            .order('scheduled_at', { ascending: true });
+          if (updatedMatches) {
+            onMatchesUpdate(updatedMatches as any);
+          }
+        } catch (error) {
+          console.error('❌ Erreur marquage scheduled:', error);
+        }
+      };
+      markAsScheduled();
     }
     
     console.log('🎮 Action envoyée:', type, payload);
@@ -163,8 +199,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     setState(next);
     chan.publish(next, match);
     console.log('📡 État publié vers Display');
-  }, [state, chan, match.id]); // Dépendances minimales
-
+  }, [state, chan, match.id, match.org_id, onMatchesUpdate]); // Dépendances minimales
   // Fonction de reset du match (mémorisée)
   const resetMatch = useCallback(async () => {
     if (!confirm('Êtes-vous sûr de vouloir remettre ce match à zéro ? Cela arrêtera le chronomètre et remettra les scores à 0.')) {

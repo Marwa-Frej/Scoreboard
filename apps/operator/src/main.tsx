@@ -175,20 +175,25 @@ function App() {
   const handleMatchSelect = useCallback((match: MatchInfo) => {
     console.log('🎯 Sélection du match:', match.name);
     console.log('🎯 Main - Avant setSelectedMatch, selectedMatch actuel:', selectedMatch?.name || 'null');
+    
+    // Empêcher la sélection d'un autre match si un match est déjà actif
+    if (activeMatch && activeMatch.id !== match.id) {
+      console.log('❌ Impossible de sélectionner un autre match - Match actif:', activeMatch.name);
+      alert(`Impossible de sélectionner un autre match.\nLe match "${activeMatch.name}" est actuellement actif.\n\nVeuillez d'abord l'arrêter ou le remettre à zéro.`);
+      return;
+    }
+    
     setSelectedMatch(match);
     console.log('🎯 Main - Après setSelectedMatch');
-  }, []);
-
-  // Fonction simple pour retourner à la liste
-  const handleBackToList = useCallback(() => {
-    console.log('🔙 Retour à la liste des matchs');
     console.log('🔙 Main - Avant setSelectedMatch(null), selectedMatch actuel:', selectedMatch?.name || 'null');
+    
+    // Si un match est actif, on peut revenir à la liste mais on garde le match sélectionné
+    if (activeMatch) {
+      console.log('ℹ️ Match actif détecté - Retour à la liste mais match reste sélectionnable');
+    }
+    
     setSelectedMatch(null);
     console.log('🔙 Main - Après setSelectedMatch(null)');
-  }, []);
-
-  // Fonction pour mettre à jour la liste des matchs
-  const handleMatchesUpdate = useCallback((updatedMatches: MatchInfo[]) => {
     console.log('📋 Mise à jour des matchs:', updatedMatches.length);
     setMatches(updatedMatches);
   }, []);

@@ -174,13 +174,17 @@ function App() {
   // Fonction simple pour sélectionner un match
   const handleMatchSelect = useCallback((match: MatchInfo) => {
     console.log('🎯 Sélection du match:', match.name);
+    console.log('🎯 Main - Avant setSelectedMatch, selectedMatch actuel:', selectedMatch?.name || 'null');
     setSelectedMatch(match);
+    console.log('🎯 Main - Après setSelectedMatch');
   }, []);
 
   // Fonction simple pour retourner à la liste
   const handleBackToList = useCallback(() => {
     console.log('🔙 Retour à la liste des matchs');
+    console.log('🔙 Main - Avant setSelectedMatch(null), selectedMatch actuel:', selectedMatch?.name || 'null');
     setSelectedMatch(null);
+    console.log('🔙 Main - Après setSelectedMatch(null)');
   }, []);
 
   // Fonction pour mettre à jour la liste des matchs

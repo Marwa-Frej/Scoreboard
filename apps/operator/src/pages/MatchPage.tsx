@@ -61,12 +61,20 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       () => {
         console.log('Display demande l\'état du match');
         setConnectionStatus('Display connecté');
-        c.publish(newState, match); 
+        // Publier l'état actuel au lieu de newState
+        setState(currentState => {
+          if (currentState) c.publish(currentState, match);
+          return currentState;
+        });
       }, 
       () => {
         console.log('Canal opérateur connecté');
         setConnectionStatus('Canal prêt');
-        c.publish(newState, match); 
+        // Publier l'état actuel au lieu de newState
+        setState(currentState => {
+          if (currentState) c.publish(currentState, match);
+          return currentState;
+        });
       }
     );
     setChan(c);
@@ -103,7 +111,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       console.log('🧹 Nettoyage MatchPage');
       c.close();
     };
-  }, [match.id]); // Dépendance uniquement sur match.id
+  }, [match.id, match.org_id, match.org_slug, match.display_token, match.home_name, match.away_name]); // Dépendances stables
 
   // Gestion du tick du chronomètre
   useEffect(() => { 

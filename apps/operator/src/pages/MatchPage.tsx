@@ -199,7 +199,8 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     setState(next);
     chan.publish(next, match);
     console.log('📡 État publié vers Display');
-  }, [state, chan, match.id, match.org_id, onMatchesUpdate]); // Dépendances minimales
+  }, [state, chan, match.id, match.org_id, onMatchesUpdate]);
+  
   // Fonction de reset du match (mémorisée)
   const resetMatch = useCallback(async () => {
     if (!confirm('Êtes-vous sûr de vouloir remettre ce match à zéro ? Cela arrêtera le chronomètre et remettra les scores à 0.')) {

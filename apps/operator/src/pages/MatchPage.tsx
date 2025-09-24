@@ -111,7 +111,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       console.log('🧹 Nettoyage MatchPage');
       c.close();
     };
-  }, [match.id, match.org_id, match.org_slug, match.display_token, match.home_name, match.away_name]); // Dépendances stables
+  }, [match.id]); // SEUL match.id comme dépendance pour éviter la boucle
 
   // Gestion du tick du chronomètre
   useEffect(() => { 
@@ -147,6 +147,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     console.log('🎮 Action envoyée:', type, payload);
     const next = reduce(state, { type, payload });
     console.log('🎮 Nouvel état:', next);
+    console.log('🎮 Score après action:', next.score);
     setState(next);
     chan.publish(next, match);
     console.log('📡 État publié vers Display');
@@ -328,12 +329,16 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
         <div className="main-score">
           <div className="team-score">
             <div className="team-name">{match.home_name}</div>
-            <div className="score-display">{state.score.home.toString().padStart(2,'0')}</div>
+            <div className="score-display" key={`home-${state.score.home}`}>
+              {state.score.home.toString().padStart(2,'0')}
+            </div>
           </div>
           <div className="score-vs">:</div>
           <div className="team-score">
             <div className="team-name">{match.away_name}</div>
-            <div className="score-display">{state.score.away.toString().padStart(2,'0')}</div>
+            <div className="score-display" key={`away-${state.score.away}`}>
+              {state.score.away.toString().padStart(2,'0')}
+            </div>
           </div>
         </div>
         

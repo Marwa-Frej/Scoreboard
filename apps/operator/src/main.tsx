@@ -384,6 +384,8 @@ function App() {
   // Interface principale
   if (selectedMatch) {
     console.log('🎮 Main - Affichage de MatchPage pour:', selectedMatch.name);
+    console.log('🎮 Main - selectedMatch object:', selectedMatch);
+    console.log('🎮 Main - activeMatch object:', activeMatch);
     return (
       <MatchPage
         match={selectedMatch}
@@ -395,6 +397,7 @@ function App() {
   }
 
   console.log('🏠 Main - Affichage de SpacePage');
+  console.log('🏠 Main - selectedMatch is null, showing SpacePage');
   return (
     <SpacePage
       user={user}

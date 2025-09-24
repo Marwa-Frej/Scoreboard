@@ -14,11 +14,27 @@ interface MatchPageProps {
 }
 
 export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: MatchPageProps) {
+  console.log('🎮 MatchPage - Rendu avec match:', match?.name || 'UNDEFINED');
+  console.log('🎮 MatchPage - Match ID:', match?.id || 'UNDEFINED');
+  
   const [state, setState] = useState<MatchState | null>(null);
   const [chan, setChan] = useState<any>(null);
   const [displayUrl, setDisplayUrl] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
   const [archiving, setArchiving] = useState(false);
+  
+  // Vérification de sécurité
+  if (!match || !match.id) {
+    console.error('❌ MatchPage - Match invalide ou manquant:', match);
+    return (
+      <div className="match-page">
+        <div className="card">
+          <div className="loading">Erreur: Match invalide</div>
+          <button onClick={onBack} className="back-button">← Retour</button>
+        </div>
+      </div>
+    );
+  }
   
   // Un match est "démarré" s'il a le statut 'live' dans la base de données
   const matchStarted = match.status === 'live';

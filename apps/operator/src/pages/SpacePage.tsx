@@ -297,8 +297,10 @@ export function SpacePage({ user, org, matches, onMatchSelect, onMatchesUpdate, 
   // Fonction simple pour sélectionner un match
   function handleMatchSelect(match: MatchInfo) {
     console.log('🎯 SpacePage - Sélection du match:', match.name);
-    console.log('🎯 SpacePage - Match sélectionné:', match);
+    console.log('🎯 SpacePage - Match object complet:', match);
+    console.log('🎯 SpacePage - Appel de onMatchSelect...');
     onMatchSelect(match);
+    console.log('🎯 SpacePage - onMatchSelect appelé avec succès');
   }
 
   // Rendu

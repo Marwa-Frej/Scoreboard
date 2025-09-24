@@ -20,8 +20,8 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
   const [archiving, setArchiving] = useState(false);
   
-  // Un match est "démarré" s'il est actif (statut live) ET que le chronomètre tourne ou a tourné
-  const matchStarted = activeMatch?.id === match.id && match.status === 'live';
+  // Un match est "démarré" s'il a le statut 'live' dans la base de données
+  const matchStarted = match.status === 'live';
 
   // Initialisation du match et du canal (une seule fois)
   useEffect(() => {

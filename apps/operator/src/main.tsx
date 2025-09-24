@@ -383,6 +383,7 @@ function App() {
 
   // Interface principale
   if (selectedMatch) {
+    console.log('🎮 Main - Affichage de MatchPage pour:', selectedMatch.name);
     return (
       <MatchPage
         match={selectedMatch}
@@ -393,6 +394,7 @@ function App() {
     );
   }
 
+  console.log('🏠 Main - Affichage de SpacePage');
   return (
     <SpacePage
       user={user}

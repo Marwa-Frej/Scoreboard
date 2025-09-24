@@ -6,12 +6,17 @@ export function initMatchState(key: string, sport: Sport): MatchState {
 }
 
 export function reduce(state: MatchState, action: { type: string; payload?: any }): MatchState {
+  console.log('🔄 Reduce - Action:', action.type, action.payload);
+  console.log('🔄 Reduce - État avant:', state);
+  
   const s = JSON.parse(JSON.stringify(state)) as MatchState;
   const meta: any = s.meta || {};
+  
   switch (action.type) {
     case 'sport:set': {
       const next = initStateForSport(s.matchId, action.payload?.sport || s.sport);
       next.score = s.score;
+      console.log('🔄 Reduce - Sport changé:', next);
       return next;
     }
     case 'clock:start': s.clock.running = true; return s;
@@ -19,8 +24,20 @@ export function reduce(state: MatchState, action: { type: string; payload?: any 
     case 'clock:set': s.clock.remainingMs = Math.max(0, Number(action.payload?.remainingMs || s.clock.remainingMs)); return s;
     case 'period:next': s.clock.period += 1; return s;
     case 'period:prev': s.clock.period = Math.max(1, s.clock.period - 1); return s;
-    case 'score:inc': s.score[action.payload?.team || 'home'] += action.payload?.amount || 1; return s;
-    case 'score:dec': s.score[action.payload?.team || 'home'] = Math.max(0, s.score[action.payload?.team || 'home'] - (action.payload?.amount || 1)); return s;
+    case 'score:inc': {
+      const team = action.payload?.team || 'home';
+      const amount = action.payload?.amount || 1;
+      s.score[team] += amount;
+      console.log('🔄 Reduce - Score incrémenté:', team, '+', amount, '=', s.score[team]);
+      return s;
+    }
+    case 'score:dec': {
+      const team = action.payload?.team || 'home';
+      const amount = action.payload?.amount || 1;
+      s.score[team] = Math.max(0, s.score[team] - amount);
+      console.log('🔄 Reduce - Score décrémenté:', team, '-', amount, '=', s.score[team]);
+      return s;
+    }
     case 'clock:reset': { const def = defaultClockForSport(s.sport); s.clock.remainingMs = def.remainingMs; s.clock.durationSec = def.durationSec; return s; }
     
     // VB

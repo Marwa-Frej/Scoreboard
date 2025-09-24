@@ -144,10 +144,12 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       markAsLive();
     }
     
+    console.log('🎮 Action envoyée:', type, payload);
     const next = reduce(state, { type, payload });
+    console.log('🎮 Nouvel état:', next);
     setState(next);
-    console.log('📡 Envoi état vers Display:', { type, payload });
     chan.publish(next, match);
+    console.log('📡 État publié vers Display');
   }, [state, chan, match]);
 
   // Fonction de reset du match (stable)

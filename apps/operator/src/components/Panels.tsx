@@ -37,13 +37,13 @@ function BasicPanel({send}:{send:(a:string,p?:any)=>void}){
       </ControlSection>
       
       <ControlSection title="Score Équipe A">
-        <button className="success" onClick={()=>send('score:inc',{team:'home'})}>+1</button>
-        <button className="danger" onClick={()=>send('score:dec',{team:'home'})}>-1</button>
+        <button className="success" onClick={()=>{console.log('🎯 Clic +1 Équipe A'); send('score:inc',{team:'home'})}}>+1</button>
+        <button className="danger" onClick={()=>{console.log('🎯 Clic -1 Équipe A'); send('score:dec',{team:'home'})}}>-1</button>
       </ControlSection>
       
       <ControlSection title="Score Équipe B">
-        <button className="success" onClick={()=>send('score:inc',{team:'away'})}>+1</button>
-        <button className="danger" onClick={()=>send('score:dec',{team:'away'})}>-1</button>
+        <button className="success" onClick={()=>{console.log('🎯 Clic +1 Équipe B'); send('score:inc',{team:'away'})}}>+1</button>
+        <button className="danger" onClick={()=>{console.log('🎯 Clic -1 Équipe B'); send('score:dec',{team:'away'})}}>-1</button>
       </ControlSection>
     </div>
   );

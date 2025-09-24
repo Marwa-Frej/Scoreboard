@@ -185,7 +185,7 @@ function App() {
     
     setSelectedMatch(match);
     console.log('🎯 Main - Après setSelectedMatch');
-  }, [activeMatch, selectedMatch]);
+  }, [selectedMatch, activeMatch]);
 
   // Fonction simple pour retourner à la liste
   const handleBackToList = useCallback(() => {
@@ -199,7 +199,7 @@ function App() {
     
     setSelectedMatch(null);
     console.log('🔙 Main - Après setSelectedMatch(null)');
-  }, [activeMatch, selectedMatch]);
+  }, [selectedMatch, activeMatch]);
 
   // Fonction pour mettre à jour la liste des matchs
   const handleMatchesUpdate = useCallback((updatedMatches: MatchInfo[]) => {

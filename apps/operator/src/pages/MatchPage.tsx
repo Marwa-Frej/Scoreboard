@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import type { MatchInfo, MatchState } from '@pkg/types';
 import { initMatchState, reduce } from '../state';
 import { Panel } from '../components/Panels';
@@ -15,11 +15,9 @@ interface MatchPageProps {
 
 export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: MatchPageProps) {
   console.log('🎮 MatchPage - Rendu avec match:', match?.name || 'UNDEFINED');
-  console.log('🎮 MatchPage - Match ID:', match?.id || 'UNDEFINED');
   
   const [state, setState] = useState<MatchState | null>(null);
   const [chan, setChan] = useState<any>(null);
-  const [displayUrl, setDisplayUrl] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
   const [archiving, setArchiving] = useState(false);
   
@@ -39,7 +37,19 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
   // Un match est "démarré" s'il a le statut 'live' dans la base de données
   const matchStarted = match.status === 'live';
 
-  // Initialisation du match et du canal (une seule fois)
+  // URL du display (mémorisée pour éviter les recalculs)
+  const displayUrl = useMemo(() => {
+    const u = new URL('http://localhost:5174/'); 
+    u.searchParams.set('org', match.org_slug || 'org'); 
+    u.searchParams.set('match', match.id); 
+    u.searchParams.set('token', match.display_token); 
+    u.searchParams.set('home', match.home_name);
+    u.searchParams.set('away', match.away_name);
+    u.searchParams.set('ui', '1'); 
+    return u.toString();
+  }, [match.id, match.org_slug, match.display_token, match.home_name, match.away_name]);
+
+  // Initialisation du match et du canal (SEULEMENT quand match.id change)
   useEffect(() => {
     console.log('🎮 MatchPage - Initialisation pour match:', match.id);
     
@@ -61,7 +71,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       () => {
         console.log('Display demande l\'état du match');
         setConnectionStatus('Display connecté');
-        // Publier l'état actuel au lieu de newState
+        // Publier l'état actuel
         setState(currentState => {
           if (currentState) c.publish(currentState, match);
           return currentState;
@@ -70,7 +80,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       () => {
         console.log('Canal opérateur connecté');
         setConnectionStatus('Canal prêt');
-        // Publier l'état actuel au lieu de newState
+        // Publier l'état actuel
         setState(currentState => {
           if (currentState) c.publish(currentState, match);
           return currentState;
@@ -78,16 +88,6 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       }
     );
     setChan(c);
-    
-    // Construire l'URL du display
-    const u = new URL('http://localhost:5174/'); 
-    u.searchParams.set('org', match.org_slug || 'org'); 
-    u.searchParams.set('match', match.id); 
-    u.searchParams.set('token', match.display_token); 
-    u.searchParams.set('home', match.home_name);
-    u.searchParams.set('away', match.away_name);
-    u.searchParams.set('ui', '1'); 
-    setDisplayUrl(u.toString());
 
     // Marquer le match comme "scheduled" si nécessaire
     const markAsScheduled = async () => {
@@ -111,20 +111,22 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       console.log('🧹 Nettoyage MatchPage');
       c.close();
     };
-  }, [match.id]); // SEUL match.id comme dépendance pour éviter la boucle
+  }, [match.id]); // SEULEMENT match.id comme dépendance
 
-  // Gestion du tick du chronomètre
+  // Gestion du tick du chronomètre (SEULEMENT quand state.matchId change)
   useEffect(() => { 
     if (!state?.matchId) return; 
     console.log('⏰ Démarrage du tick pour:', state.matchId);
-    const id = setInterval(() => setState(prev => prev ? applyTick(prev) : prev), 100); 
+    const id = setInterval(() => {
+      setState(prev => prev ? applyTick(prev) : prev);
+    }, 100); 
     return () => {
       console.log('⏰ Arrêt du tick');
       clearInterval(id);
     }; 
-  }, [state?.matchId]);
+  }, [state?.matchId]); // SEULEMENT state.matchId
 
-  // Fonction d'envoi d'actions (stable)
+  // Fonction d'envoi d'actions (mémorisée pour éviter les re-créations)
   const send = useCallback((type: string, payload?: any) => {
     if (!state || !chan) return;
     
@@ -151,9 +153,9 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     setState(next);
     chan.publish(next, match);
     console.log('📡 État publié vers Display');
-  }, [state, chan, match]);
+  }, [state, chan, match.id]); // Dépendances minimales
 
-  // Fonction de reset du match (stable)
+  // Fonction de reset du match (mémorisée)
   const resetMatch = useCallback(async () => {
     if (!confirm('Êtes-vous sûr de vouloir remettre ce match à zéro ? Cela arrêtera le chronomètre et remettra les scores à 0.')) {
       return;
@@ -187,15 +189,13 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       
       console.log('Match remis à zéro avec succès');
       
-      // Le match est maintenant remis à zéro
-      
     } catch (err) {
       console.error('Erreur inattendue:', err);
       alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
     }
-  }, [match, chan]);
+  }, [match.id, match.org_id, match.sport, chan]);
 
-  // Fonction d'archivage (stable)
+  // Fonction d'archivage (mémorisée)
   const archiveMatch = useCallback(async () => {
     if (matchStarted) {
       alert('Impossible d\'archiver un match qui a été démarré. Veuillez d\'abord le remettre à zéro ou attendre qu\'il soit terminé.');
@@ -329,14 +329,14 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
         <div className="main-score">
           <div className="team-score">
             <div className="team-name">{match.home_name}</div>
-            <div className="score-display" key={`home-${state.score.home}`}>
+            <div className="score-display">
               {state.score.home.toString().padStart(2,'0')}
             </div>
           </div>
           <div className="score-vs">:</div>
           <div className="team-score">
             <div className="team-name">{match.away_name}</div>
-            <div className="score-display" key={`away-${state.score.away}`}>
+            <div className="score-display">
               {state.score.away.toString().padStart(2,'0')}
             </div>
           </div>
@@ -368,7 +368,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
         )}
         
         <div className="controls-section">
-          <Panel state={state} send={(a, p) => send(a, p) as any} />
+          <Panel state={state} send={send} />
         </div>
 
         {displayUrl && (

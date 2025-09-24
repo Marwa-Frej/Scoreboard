@@ -49,17 +49,17 @@ export function Scoreboard({ state, homeName, awayName, homeLogo, awayLogo }:{ s
       {/* Score principal */}
       <div className="main-scoreboard">
         <div className="team-section home">
-          <div className="team-header">
-            <div className="team-logo">
-              {homeLogo ? <img src={homeLogo} alt="Logo" /> : <div className="logo-placeholder">🏟</div>}
-            </div>
-            <div className="team-info">
-              <div className="team-name">{homeName}</div>
-              <div className="team-indicators">
-                {vb && serveHome && <span className="serve-indicator">SERVICE</span>}
-                {ppHome && <span className="power-play">POWER PLAY</span>}
-                {bonusH && <span className="bonus">BONUS</span>}
+          <div className="team-info">
+            <div className="team-name">
+              <div className="team-logo-inline">
+                {homeLogo ? <img src={homeLogo} alt="Logo" /> : <div className="logo-placeholder-inline">🏟</div>}
               </div>
+              {homeName}
+            </div>
+            <div className="team-indicators">
+              {vb && serveHome && <span className="serve-indicator">SERVICE</span>}
+              {ppHome && <span className="power-play">POWER PLAY</span>}
+              {bonusH && <span className="bonus">BONUS</span>}
             </div>
           </div>
           <div className="score-display">{state.score.home}</div>
@@ -70,17 +70,17 @@ export function Scoreboard({ state, homeName, awayName, homeLogo, awayLogo }:{ s
         </div>
 
         <div className="team-section away">
-          <div className="team-header">
-            <div className="team-info">
-              <div className="team-name">{awayName}</div>
-              <div className="team-indicators">
-                {vb && serveAway && <span className="serve-indicator">SERVICE</span>}
-                {ppAway && <span className="power-play">POWER PLAY</span>}
-                {bonusA && <span className="bonus">BONUS</span>}
+          <div className="team-info">
+            <div className="team-name">
+              <div className="team-logo-inline">
+                {awayLogo ? <img src={awayLogo} alt="Logo" /> : <div className="logo-placeholder-inline">🏟</div>}
               </div>
+              {awayName}
             </div>
-            <div className="team-logo">
-              {awayLogo ? <img src={awayLogo} alt="Logo" /> : <div className="logo-placeholder">🏟</div>}
+            <div className="team-indicators">
+              {vb && serveAway && <span className="serve-indicator">SERVICE</span>}
+              {ppAway && <span className="power-play">POWER PLAY</span>}
+              {bonusA && <span className="bonus">BONUS</span>}
             </div>
           </div>
           <div className="score-display">{state.score.away}</div>

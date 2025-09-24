@@ -62,7 +62,7 @@ export function Scoreboard({ state, homeName, awayName, homeLogo, awayLogo }:{ s
               </div>
             </div>
           </div>
-          <div className="score-display">{pad3(state.score.home)}</div>
+          <div className="score-display">{state.score.home}</div>
         </div>
 
         <div className="vs-separator">
@@ -83,7 +83,7 @@ export function Scoreboard({ state, homeName, awayName, homeLogo, awayLogo }:{ s
               {awayLogo ? <img src={awayLogo} alt="Logo" /> : <div className="logo-placeholder">🏟</div>}
             </div>
           </div>
-          <div className="score-display">{pad3(state.score.away)}</div>
+          <div className="score-display">{state.score.away}</div>
         </div>
       </div>
 
@@ -208,5 +208,4 @@ export function Scoreboard({ state, homeName, awayName, homeLogo, awayLogo }:{ s
   );
 }
 
-function pad3(n:number){ return n.toString().padStart(3,'0'); }
 function fmt(ms:number){ const s = Math.floor(ms/1000); const mm = Math.floor(s/60).toString().padStart(2,'0'); const ss = (s%60).toString().padStart(2,'0'); return `${mm}:${ss}`; }

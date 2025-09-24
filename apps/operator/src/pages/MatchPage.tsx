@@ -15,12 +15,13 @@ interface MatchPageProps {
 
 export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: MatchPageProps) {
   console.log('🎮 MatchPage - Rendu avec match:', match?.name || 'UNDEFINED');
-  console.log('🎮 MatchPage - Score actuel:', state?.score || 'Pas encore chargé');
   
   const [state, setState] = useState<MatchState | null>(null);
   const [chan, setChan] = useState<any>(null);
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
   const [archiving, setArchiving] = useState(false);
+  
+  console.log('🎮 MatchPage - Score actuel:', state?.score || 'Pas encore chargé');
   
   // Vérification de sécurité
   if (!match || !match.id) {

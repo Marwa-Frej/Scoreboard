@@ -22,37 +22,191 @@ export function Scoreboard({ state, homeName, awayName, homeLogo, awayLogo }:{ s
   const serveHome = vb?.serve === 'home'; const serveAway = vb?.serve === 'away';
 
   return (
-    <div className="panel">
-      <div className="row">
-        <div className="team">
-          {vb && <span className="badge" style={{opacity: serveHome?1:.25}}/>}
-          {homeLogo ? <span className="logo"><img src={homeLogo} alt="" /></span> : <span className="logo">🏟</span>}
-          {homeName} {ppHome && <span className="chip">PP</span>}
+    <div className="scoreboard-container">
+      {/* Header avec période et temps */}
+      <div className="scoreboard-header">
+        <div className="period-info">
+          <span className="period-label">PÉRIODE</span>
+          <span className="period-number">{state.clock.period}</span>
         </div>
-        <div className="score">
-          <span className="led huge">{pad2(state.score.home)}</span>
-          <span className="led huge sep">:</span>
-          <span className="led huge">{pad2(state.score.away)}</span>
+        
+        {state.sport !== 'volleyball' && (
+          <div className="time-info">
+            <span className="time-display">{time}</span>
+            {state.clock.running && <div className="time-indicator running"></div>}
+            {!state.clock.running && <div className="time-indicator paused"></div>}
+          </div>
+        )}
+        
+        {bb && shot > 0 && (
+          <div className="shot-clock">
+            <span className="shot-label">TIRS</span>
+            <span className="shot-time">{shot}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Score principal */}
+      <div className="main-scoreboard">
+        <div className="team-section home">
+          <div className="team-header">
+            <div className="team-logo">
+              {homeLogo ? <img src={homeLogo} alt="Logo" /> : <div className="logo-placeholder">🏟</div>}
+            </div>
+            <div className="team-info">
+              <div className="team-name">{homeName}</div>
+              <div className="team-indicators">
+                {vb && serveHome && <span className="serve-indicator">SERVICE</span>}
+                {ppHome && <span className="power-play">POWER PLAY</span>}
+                {bonusH && <span className="bonus">BONUS</span>}
+              </div>
+            </div>
+          </div>
+          <div className="score-display">{pad3(state.score.home)}</div>
         </div>
-        <div className="team" style={{justifyContent:'flex-end'}}>
-          {ppAway && <span className="chip">PP</span>}
-          {awayName}
-          {awayLogo ? <span className="logo"><img src={awayLogo} alt="" /></span> : <span className="logo">🏟</span>}
-          {vb && <span className="badge" style={{opacity: serveAway?1:.25}}/>}
+
+        <div className="vs-separator">
+          <div className="vs-text">VS</div>
+        </div>
+
+        <div className="team-section away">
+          <div className="team-header">
+            <div className="team-info">
+              <div className="team-name">{awayName}</div>
+              <div className="team-indicators">
+                {vb && serveAway && <span className="serve-indicator">SERVICE</span>}
+                {ppAway && <span className="power-play">POWER PLAY</span>}
+                {bonusA && <span className="bonus">BONUS</span>}
+              </div>
+            </div>
+            <div className="team-logo">
+              {awayLogo ? <img src={awayLogo} alt="Logo" /> : <div className="logo-placeholder">🏟</div>}
+            </div>
+          </div>
+          <div className="score-display">{pad3(state.score.away)}</div>
         </div>
       </div>
-      <div className="sub">
-        <div className="chip"><span className="led big">P{state.clock.period}</span></div>
-        {state.sport!=='volleyball' && (<div className="chip"><span className={`led big ${state.clock.running?'blink':''}`}>{time}</span>{!state.clock.running && <span style={{opacity:.7}}>⏸</span>}</div>)}
-        {fb && (<><div className="chip">H: 🟨 {fb.cards?.home?.yellow||0} • 🟥 {fb.cards?.home?.red||0}</div><div className="chip"><strong>+{fb.stoppageMin||0}'</strong></div><div className="chip">A: 🟨 {fb.cards?.away?.yellow||0} • 🟥 {fb.cards?.away?.red||0}</div>{fb.shootout?.inProgress && <div className="chip">TAB H {fb.shootout.home.filter((x:string)=>x==='G').length} : {fb.shootout.away.filter((x:string)=>x==='G').length} A</div>}</>)}
-        {hb && (<><div className="chip">TO H: <span className="led med">{hb.timeouts?.home||0}/{hb.timeouts?.maxPerTeam||3}</span></div><div className="chip">2' H actives: <span className="led med">{hbSuspH}</span></div><div className="chip">TO A: <span className="led med">{hb.timeouts?.away||0}/{hb.timeouts?.maxPerTeam||3}</span></div><div className="chip">2' A actives: <span className="led med">{hbSuspA}</span></div></>)}
-        {bb && (<><div className="chip">TF H: <span className="led med">{bb.teamFouls?.home||0}</span>{bonusH && <span style={{marginLeft:8}}>Bonus</span>}</div><div className="chip"><strong>⏱ {shot}</strong></div><div className="chip">TF A: <span className="led med">{bb.teamFouls?.away||0}</span>{bonusA && <span style={{marginLeft:8}}>Bonus</span>}</div></>)}
-        {hi && (<><div className="chip">PEN H actives: <span className="led med">{hiPenH}</span></div><div className="chip">PEN A actives: <span className="led med">{hiPenA}</span></div></>)}
-        {hf && (<><div className="chip">H cartes: 🟩 {hf.cards?.home?.green||0} 🟨 {hf.cards?.home?.yellow||0} 🟥 {hf.cards?.home?.red||0}</div><div className="chip">A cartes: 🟩 {hf.cards?.away?.green||0} 🟨 {hf.cards?.away?.yellow||0} 🟥 {hf.cards?.away?.red||0}</div></>)}
-        {vb && (<><div className="chip"><strong>Sets</strong> <span className="led med">{vb.setsWon?.home||0}</span><span className="sep">:</span><span className="led med">{vb.setsWon?.away||0}</span></div><div className="chip"><strong>TM</strong> <span className="led med">{vb.timeouts?.home||0}/{vb.maxTimeoutsPerSet||2}</span><span className="sep">•</span><span className="led med">{vb.timeouts?.away||0}/{vb.maxTimeoutsPerSet||2}</span></div>{vb.technicalTO?.enabled && <div className="chip">TTO aux points {vb.technicalTO.atPoints?.join(', ')}</div>}</>)}
+
+      {/* Statistiques spécifiques au sport */}
+      <div className="stats-section">
+        {fb && (
+          <div className="sport-stats football">
+            <div className="stat-group">
+              <div className="stat-item">
+                <span className="stat-label">CARTONS {homeName}</span>
+                <span className="stat-value">🟨 {fb.cards?.home?.yellow||0} • 🟥 {fb.cards?.home?.red||0}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">TEMPS ADD.</span>
+                <span className="stat-value highlight">+{fb.stoppageMin||0}'</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">CARTONS {awayName}</span>
+                <span className="stat-value">🟨 {fb.cards?.away?.yellow||0} • 🟥 {fb.cards?.away?.red||0}</span>
+              </div>
+            </div>
+            {fb.shootout?.inProgress && (
+              <div className="shootout-info">
+                <span className="shootout-label">TIRS AU BUT</span>
+                <span className="shootout-score">
+                  {fb.shootout.home.filter((x:string)=>x==='G').length} - {fb.shootout.away.filter((x:string)=>x==='G').length}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {hb && (
+          <div className="sport-stats handball">
+            <div className="stat-group">
+              <div className="stat-item">
+                <span className="stat-label">TEMPS MORTS {homeName}</span>
+                <span className="stat-value">{hb.timeouts?.home||0}/{hb.timeouts?.maxPerTeam||3}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">EXCLUSIONS</span>
+                <span className="stat-value">{hbSuspH} - {hbSuspA}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">TEMPS MORTS {awayName}</span>
+                <span className="stat-value">{hb.timeouts?.away||0}/{hb.timeouts?.maxPerTeam||3}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {bb && (
+          <div className="sport-stats basketball">
+            <div className="stat-group">
+              <div className="stat-item">
+                <span className="stat-label">FAUTES ÉQUIPE {homeName}</span>
+                <span className="stat-value">{bb.teamFouls?.home||0}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">TEMPS MORTS</span>
+                <span className="stat-value">{(bb.timeoutsLeft?.home||0)} - {(bb.timeoutsLeft?.away||0)}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">FAUTES ÉQUIPE {awayName}</span>
+                <span className="stat-value">{bb.teamFouls?.away||0}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hi && (
+          <div className="sport-stats hockey-ice">
+            <div className="stat-group">
+              <div className="stat-item">
+                <span className="stat-label">PÉNALITÉS {homeName}</span>
+                <span className="stat-value">{hiPenH}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">PÉNALITÉS {awayName}</span>
+                <span className="stat-value">{hiPenA}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hf && (
+          <div className="sport-stats hockey-field">
+            <div className="stat-group">
+              <div className="stat-item">
+                <span className="stat-label">CARTES {homeName}</span>
+                <span className="stat-value">🟩 {hf.cards?.home?.green||0} 🟨 {hf.cards?.home?.yellow||0} 🟥 {hf.cards?.home?.red||0}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">CARTES {awayName}</span>
+                <span className="stat-value">🟩 {hf.cards?.away?.green||0} 🟨 {hf.cards?.away?.yellow||0} 🟥 {hf.cards?.away?.red||0}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {vb && (
+          <div className="sport-stats volleyball">
+            <div className="stat-group">
+              <div className="stat-item">
+                <span className="stat-label">SETS</span>
+                <span className="stat-value highlight">{vb.setsWon?.home||0} - {vb.setsWon?.away||0}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">TEMPS MORTS</span>
+                <span className="stat-value">{vb.timeouts?.home||0}/{vb.maxTimeoutsPerSet||2} - {vb.timeouts?.away||0}/{vb.maxTimeoutsPerSet||2}</span>
+              </div>
+            </div>
+            {vb.technicalTO?.enabled && (
+              <div className="technical-timeout">
+                <span className="tech-label">TTO aux points: {vb.technicalTO.atPoints?.join(', ')}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
-function pad2(n:number){ return n.toString().padStart(2,'0'); }
+
+function pad3(n:number){ return n.toString().padStart(3,'0'); }
 function fmt(ms:number){ const s = Math.floor(ms/1000); const mm = Math.floor(s/60).toString().padStart(2,'0'); const ss = (s%60).toString().padStart(2,'0'); return `${mm}:${ss}`; }

@@ -354,27 +354,30 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
           </div>
           <button 
             onClick={archiveMatch}
-            disabled={archiving}
-            title="Archiver ce match (le rend inactif)"
+            disabled={archiving || state.clock.running}
+            title={state.clock.running ? "Arrêtez d'abord le chronomètre pour archiver" : "Archiver ce match (le rend inactif)"}
             style={{ 
               background: '#f59e0b', 
               borderColor: '#f59e0b',
               color: 'white',
               minHeight: '40px',
-              cursor: 'pointer'
+              cursor: state.clock.running ? 'not-allowed' : 'pointer',
+              opacity: state.clock.running ? 0.6 : 1
             }}
           >
             {archiving ? '📦 Archivage...' : '📦 Archiver'}
           </button>
           <button 
             onClick={resetMatch}
-            title="Remettre le match à zéro (le rend inactif)"
+            disabled={state.clock.running}
+            title={state.clock.running ? "Arrêtez d'abord le chronomètre pour faire un reset" : "Remettre le match à zéro (le rend inactif)"}
             style={{ 
               background: '#dc2626', 
               borderColor: '#dc2626',
               color: 'white',
               minHeight: '40px',
-              cursor: 'pointer'
+              cursor: state.clock.running ? 'not-allowed' : 'pointer',
+              opacity: state.clock.running ? 0.6 : 1
             }}
           >
             🔄 Reset

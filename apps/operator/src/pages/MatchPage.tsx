@@ -394,7 +394,6 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
               {Math.floor((state.clock.remainingMs%60000)/1000).toString().padStart(2,'0')}
             </div>
             <div className="period-display">Période {state.clock.period}</div>
-            <button onClick={() => send('clock:reset')}>⟲ Reset</button>
             <button onClick={() => send('period:next')}>Période +1</button>
             <button onClick={() => send('period:prev')}>Période -1</button>
           </div>

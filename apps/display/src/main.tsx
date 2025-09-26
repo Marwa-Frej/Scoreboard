@@ -22,6 +22,7 @@ function App(){
   const [displayConnection, setDisplayConnection] = useState<any>(null);
   const [envError, setEnvError] = useState<string>('');
   const [supa, setSupa] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   useEffect(()=>{ applyTheme(theme); }, [theme]);
   
@@ -39,6 +40,8 @@ function App(){
       setEnvError('Configuration Supabase invalide');
       return;
     }
+    
+    setDebugInfo(`Config OK - URL: ${supabaseUrl.substring(0, 30)}...`);
     
     // Créer le client Supabase
     const supabaseClient = createClient(supabaseUrl, supabaseKey, { 
@@ -59,7 +62,8 @@ function App(){
 
     async function checkForActiveMatch() {
       try {
-        // console.log('Display - Recherche de match actif...');
+        console.log('Display - Recherche de match actif...');
+        setDebugInfo('Recherche de matchs actifs...');
         
         // Chercher tous les matchs avec public_display = true (accessible sans auth)
         let { data: matches, error } = await supa
@@ -73,10 +77,12 @@ function App(){
         if (error) {
           console.error('Display - Erreur requête:', error);
           setConnectionStatus(`Erreur DB: ${error.message}`);
+          setDebugInfo(`Erreur DB: ${error.message}`);
           return;
         }
         
-        // console.log('Display - Matchs publics trouvés:', matches);
+        console.log('Display - Matchs publics trouvés:', matches);
+        setDebugInfo(`Matchs trouvés: ${matches?.length || 0}`);
 
         if (matches && matches.length > 0) {
           // Chercher d'abord un match "live"
@@ -91,6 +97,7 @@ function App(){
           if (!currentMatch || currentMatch.id !== match.id) {
             console.log('Display - Nouveau match sélectionné:', match);
             setCurrentMatch(match);
+            setDebugInfo(`Match sélectionné: ${match.name}`);
             setHome(match.home_name);
             setAway(match.away_name);
             
@@ -112,8 +119,9 @@ function App(){
             connectToMatch(match);
           }
         } else {
-          // console.log('Display - Aucun match public trouvé');
+          console.log('Display - Aucun match public trouvé');
           setConnectionStatus('Aucun match public disponible');
+          setDebugInfo('Aucun match public disponible');
           if (currentMatch) {
             setState(null);
             setCurrentMatch(null);
@@ -122,6 +130,7 @@ function App(){
       } catch (error) {
         console.error('Display - Erreur lors de la recherche de match:', error);
         setConnectionStatus(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+        setDebugInfo(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
       }
     }
 
@@ -226,6 +235,9 @@ function App(){
           </div>
         )}
         <div style={{ fontSize: '12px', marginTop: '15px', color: '#666' }}>
+          Debug: {debugInfo}
+        </div>
+        <div style={{ fontSize: '12px', marginTop: '15px', color: '#666' }}>
           Le tableau de bord s'affichera automatiquement<br />
           quand un match sera sélectionné dans l'Operator
         </div>
@@ -257,6 +269,7 @@ function App(){
         <option value="neon">Neon</option><option value="glass">Glass</option><option value="classic">Classic</option>
       </select>
       <button onClick={()=>toggleFullscreen()}>Plein écran (F)</button>
+      <button onClick={() => window.location.reload()}>🔄 Recharger</button>
     </div>
   </div>);
 }

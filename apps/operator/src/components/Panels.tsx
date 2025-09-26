@@ -95,12 +95,21 @@ function FootballPanel({send}:{send:(a:string,p?:any)=>void}){
       </ControlSection>
       
       <ControlSection title="Temps additionnel">
-        <div className="control-grid">
-          <button onClick={()=>send('fb:stoppage',{minutes:1})}>+1 min</button>
-          <button onClick={()=>send('fb:stoppage:dec')}>-1 min</button>
-          <button onClick={()=>send('fb:stoppage',{minutes:2})}>+2 min</button>
-          <button onClick={()=>send('fb:stoppage',{minutes:3})}>+3 min</button>
-          <button onClick={()=>send('fb:stoppage',{minutes:0})}>Reset</button>
+        <div className="control-grid three-col">
+          <button className="success" onClick={()=>send('fb:stoppage:inc')}>⏱ +1 min</button>
+          <button className="danger" onClick={()=>send('fb:stoppage:dec')}>⏱ -1 min</button>
+          <button onClick={()=>send('fb:stoppage',{minutes:0})}>⟲ Reset</button>
+        </div>
+      </ControlSection>
+      
+      <ControlSection title="Prolongations">
+        <div className="control-grid two-col">
+          <button onClick={()=>send('fb:extra:start')} style={{background:'#f59e0b', borderColor:'#f59e0b', color:'white'}}>
+            🕐 Démarrer prolongations
+          </button>
+          <button onClick={()=>send('fb:extra:reset')} style={{background:'#6b7280', borderColor:'#6b7280', color:'white'}}>
+            ⟲ Retour temps réglementaire
+          </button>
         </div>
       </ControlSection>
       

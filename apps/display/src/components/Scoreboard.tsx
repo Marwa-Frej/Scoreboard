@@ -26,8 +26,15 @@ export function Scoreboard({ state, homeName, awayName, homeLogo, awayLogo }:{ s
       {/* Header avec période et temps */}
       <div className="scoreboard-header">
         <div className="period-info">
-          <span className="period-label">PÉRIODE</span>
-          <span className="period-number">{state.clock.period}</span>
+          <span className="period-label">
+            {state.sport === 'football' && state.clock.period > 2 ? 'PROLONGATION' : 'PÉRIODE'}
+          </span>
+          <span className="period-number">
+            {state.sport === 'football' && state.clock.period > 2 ? 
+              (state.clock.period === 3 ? '1' : '2') : 
+              state.clock.period
+            }
+          </span>
         </div>
         
         {state.sport !== 'volleyball' && (

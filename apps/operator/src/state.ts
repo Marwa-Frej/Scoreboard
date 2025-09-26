@@ -57,7 +57,31 @@ export function reduce(state: MatchState, action: { type: string; payload?: any 
     case 'fb:card': { const {team='home', color='yellow'} = action.payload||{}; if (color==='yellow' || color==='red'){ meta.cards[team][color] = (meta.cards[team][color]||0)+1; } s.meta = meta; return s; }
     case 'fb:card:dec': { const {team='home', color='yellow'} = action.payload||{}; if (color==='yellow' || color==='red'){ meta.cards[team][color] = Math.max(0, (meta.cards[team][color]||0) - 1); } s.meta = meta; return s; }
     case 'fb:stoppage': { const { minutes=0 } = action.payload||{}; meta.stoppageMin = minutes; s.meta = meta; return s; }
+    case 'fb:stoppage:inc': { meta.stoppageMin = (meta.stoppageMin||0) + 1; s.meta = meta; return s; }
     case 'fb:stoppage:dec': { meta.stoppageMin = Math.max(0, (meta.stoppageMin||0) - 1); s.meta = meta; return s; }
+    case 'fb:extra:start': { 
+      if (s.clock.period <= 2) {
+        s.clock.period = 3; 
+        s.clock.remainingMs = 15 * 60 * 1000; // 15 minutes
+        s.clock.durationSec = 15 * 60;
+        meta.stoppageMin = 0; // Reset temps additionnel
+      } else if (s.clock.period === 3) {
+        s.clock.period = 4; 
+        s.clock.remainingMs = 15 * 60 * 1000; // 15 minutes
+        s.clock.durationSec = 15 * 60;
+        meta.stoppageMin = 0; // Reset temps additionnel
+      }
+      s.meta = meta; 
+      return s; 
+    }
+    case 'fb:extra:reset': { 
+      s.clock.period = 1; 
+      s.clock.remainingMs = 45 * 60 * 1000; // Retour à 45 minutes
+      s.clock.durationSec = 45 * 60;
+      meta.stoppageMin = 0; 
+      s.meta = meta; 
+      return s; 
+    }
     case 'fb:so:start': { meta.shootout = { inProgress:true, home:[], away:[] }; s.meta = meta; return s; }
     case 'fb:so:record': { const { team='home', res='G' } = action.payload||{}; if (!meta.shootout) meta.shootout = { inProgress:true, home:[], away:[] }; meta.shootout[team].push(res==='G'?'G':'M'); s.meta = meta; return s; }
     case 'fb:so:undo': { const { team='home' } = action.payload||{}; if (!meta.shootout) meta.shootout = { inProgress:true, home:[], away:[] }; if (meta.shootout[team].length > 0) meta.shootout[team].pop(); s.meta = meta; return s; }

@@ -64,7 +64,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     let initialState: MatchState;
     
     // Pour un match actif, essayer de restaurer l'état depuis localStorage
-    if (match.status === 'live') {
+    if (matchStatus === 'live') {
       try {
         const savedState = localStorage.getItem(storageKey);
         if (savedState) {
@@ -139,11 +139,11 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
 
   // Sauvegarder l'état dans localStorage à chaque changement (pour les matchs actifs)
   useEffect(() => {
-    if (state && match.status === 'live') {
+    if (state && matchStatus === 'live') {
       localStorage.setItem(storageKey, JSON.stringify(state));
       console.log('💾 État sauvegardé dans localStorage');
     }
-  }, [state, match.status, storageKey]);
+  }, [state, matchStatus, storageKey]);
 
   // Gestion du tick du chronomètre (SEULEMENT quand state.matchId change)
   useEffect(() => { 

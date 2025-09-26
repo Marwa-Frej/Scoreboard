@@ -21,6 +21,9 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
   const [archiving, setArchiving] = useState(false);
   
+  // Clé pour le localStorage
+  const storageKey = `match_state_${match.id}`;
+  
   console.log('🎮 MatchPage - Score actuel:', state?.score || 'Pas encore chargé');
   
   // Vérification de sécurité
@@ -55,15 +58,37 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
   useEffect(() => {
     console.log('🎮 MatchPage - Initialisation pour match:', match.id);
     
-    // Initialiser l'état du match
-    const key = `${match.org_id}:${match.id}`;
-    const initialState = initMatchState(key, match.sport);
+    let initialState: MatchState;
     
-    // Si le match est actif, on va demander l'état actuel via le canal
-    // En attendant, on met le chronomètre en marche pour éviter les à-coups
+    // Pour un match actif, essayer de restaurer l'état depuis localStorage
     if (match.status === 'live') {
-      initialState.clock.running = true;
-      console.log('🔴 Match actif détecté - Chronomètre démarré, état sera synchronisé');
+      try {
+        const savedState = localStorage.getItem(storageKey);
+        if (savedState) {
+          const parsedState = JSON.parse(savedState);
+          // Vérifier que l'état sauvegardé correspond au bon match et sport
+          if (parsedState.matchId === `${match.org_id}:${match.id}` && parsedState.sport === match.sport) {
+            initialState = parsedState;
+            initialState.clock.running = true; // S'assurer que le chrono tourne
+            console.log('🔄 État restauré depuis localStorage:', initialState);
+          } else {
+            throw new Error('État sauvegardé invalide');
+          }
+        } else {
+          throw new Error('Pas d\'état sauvegardé');
+        }
+      } catch (error) {
+        console.log('⚠️ Impossible de restaurer l\'état, initialisation par défaut');
+        const key = `${match.org_id}:${match.id}`;
+        initialState = initMatchState(key, match.sport);
+        initialState.clock.running = true;
+      }
+    } else {
+      // Match inactif : initialisation normale
+      const key = `${match.org_id}:${match.id}`;
+      initialState = initMatchState(key, match.sport);
+      // Nettoyer le localStorage pour les matchs inactifs
+      localStorage.removeItem(storageKey);
     }
     
     setState(initialState);
@@ -91,36 +116,13 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       () => {
         console.log('🔌 Canal opérateur connecté');
         setConnectionStatus('Canal prêt');
-        
-        // Si le match est actif, demander l'état actuel au display
-        if (match.status === 'live') {
-          console.log('🔄 Match actif - Demande de synchronisation de l\'état');
-          // Envoyer une demande de synchronisation
-          c.requestSync();
-        } else {
-          // Pour un match inactif, publier l'état initial
-          setState(currentState => {
-            if (currentState) c.publish(currentState, match);
-            return currentState;
-          });
-        }
-      }
-    );
-    
-    // Écouter les mises à jour d'état pour la synchronisation
-    c.onStateUpdate((receivedState) => {
-      console.log('🔄 État reçu pour synchronisation:', receivedState);
-      if (receivedState && match.status === 'live') {
-        console.log('🔄 Synchronisation de l\'état du match actif');
+        // Publier l'état initial (restauré ou nouveau)
         setState(currentState => {
-          // Fusionner l'état reçu avec l'état actuel
-          return {
-            ...receivedState,
-            matchId: currentState?.matchId || receivedState.matchId
-          };
+          if (currentState) c.publish(currentState, match);
+          return currentState;
         });
       }
-    });
+    );
     
     setChan(c);
 
@@ -131,6 +133,14 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       c.close();
     };
   }, [match.id]); // SEULEMENT match.id comme dépendance
+
+  // Sauvegarder l'état dans localStorage à chaque changement (pour les matchs actifs)
+  useEffect(() => {
+    if (state && match.status === 'live') {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      console.log('💾 État sauvegardé dans localStorage');
+    }
+  }, [state, match.status, storageKey]);
 
   // Gestion du tick du chronomètre (SEULEMENT quand state.matchId change)
   useEffect(() => { 
@@ -219,6 +229,9 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       const resetState = initMatchState(key, match.sport);
       setState(resetState);
       
+      // Nettoyer le localStorage
+      localStorage.removeItem(storageKey);
+      
       // Publier le nouvel état
       if (chan) {
         chan.publish(resetState, match);
@@ -264,6 +277,9 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       } else {
         console.log('Match archivé avec succès');
         
+        // Nettoyer le localStorage
+        localStorage.removeItem(storageKey);
+        
         // Recharger les matchs pour mettre à jour la liste
         const { data: updatedMatches } = await supa
           .from('matches')
@@ -283,7 +299,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
     }
     setArchiving(false);
-  }, [match.id, match.org_id, chan, onBack, onMatchesUpdate]);
+  }, [match.id, match.org_id, chan, onBack, onMatchesUpdate, storageKey]);
 
   if (!state) {
     return (

@@ -55,9 +55,21 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
   useEffect(() => {
     console.log('🎮 MatchPage - Initialisation pour match:', match.id);
     
-    const key = `${match.org_id}:${match.id}`;
-    const newState = initMatchState(key, match.sport);
-    setState(newState);
+    // Ne réinitialiser l'état QUE si le match n'est pas actif
+    // Si le match est actif (status = 'live'), on garde l'état existant
+    if (match.status !== 'live') {
+      const key = `${match.org_id}:${match.id}`;
+      const newState = initMatchState(key, match.sport);
+      setState(newState);
+    } else {
+      // Pour un match actif, créer un état minimal qui sera mis à jour par le canal
+      const key = `${match.org_id}:${match.id}`;
+      const preservedState = initMatchState(key, match.sport);
+      // Garder le chronomètre en marche pour un match actif
+      preservedState.clock.running = true;
+      setState(preservedState);
+      console.log('🔴 Match actif détecté - État préservé avec chronomètre en marche');
+    }
     
     // Fermer le canal précédent s'il existe
     if (chan) {

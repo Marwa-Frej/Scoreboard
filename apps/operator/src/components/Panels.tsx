@@ -48,12 +48,12 @@ function BasicPanel({send}:{send:(a:string,p?:any)=>void}){
       <ControlSection title="Score" className="team-layout">
         <div className="teams-grid">
           <TeamSection title="Équipe A">
-            <button className="success" onClick={()=>{console.log('🎯 Clic +1 Équipe A'); send('score:inc',{team:'home'})}}>+1</button>
-            <button className="danger" onClick={()=>{console.log('🎯 Clic -1 Équipe A'); send('score:dec',{team:'home'})}}>-1</button>
+            <button className="success" onClick={()=>{console.log('🎯 Clic +1 Équipe A'); send('score:inc',{team:'home'});}}>+1</button>
+            <button className="danger" onClick={()=>{console.log('🎯 Clic -1 Équipe A'); send('score:dec',{team:'home'});}}>-1</button>
           </TeamSection>
           <TeamSection title="Équipe B">
-            <button className="success" onClick={()=>{console.log('🎯 Clic +1 Équipe B'); send('score:inc',{team:'away'})}}>+1</button>
-            <button className="danger" onClick={()=>{console.log('🎯 Clic -1 Équipe B'); send('score:dec',{team:'away'})}}>-1</button>
+            <button className="success" onClick={()=>{console.log('🎯 Clic +1 Équipe B'); send('score:inc',{team:'away'});}}>+1</button>
+            <button className="danger" onClick={()=>{console.log('🎯 Clic -1 Équipe B'); send('score:dec',{team:'away'});}}>-1</button>
           </TeamSection>
         </div>
       </ControlSection>
@@ -355,37 +355,7 @@ function VolleyballPanel({send}:{send:(a:string,p?:any)=>void}){
       </ControlSection>
       
       <ControlSection title="Service">
-        <div className="teams-grid">
-          <TeamSection title="Équipe A">
-            <button onClick={()=>send('vb:serve',{team:'home'})}>🏐 Service</button>
-          </TeamSection>
-          <TeamSection title="Équipe B">
-            <button onClick={()=>send('vb:serve',{team:'away'})}>🏐 Service</button>
-          </TeamSection>
-        </div>
-      </ControlSection>
-      
-      <ControlSection title="Temps morts">
-        <div className="teams-grid">
-          <TeamSection title="Équipe A">
-            <button onClick={()=>send('vb:timeout',{team:'home'})}>⏱ +1 TO</button>
-            <button onClick={()=>send('vb:timeout:dec',{team:'home'})}>⏱ -1 TO</button>
-          </TeamSection>
-          <TeamSection title="Équipe B">
-            <button onClick={()=>send('vb:timeout',{team:'away'})}>⏱ +1 TO</button>
-            <button onClick={()=>send('vb:timeout:dec',{team:'away'})}>⏱ -1 TO</button>
-          </TeamSection>
-        </div>
-      </ControlSection>
-      
-      <ControlSection title="Gestion des sets">
-        <div className="control-grid">
-          <button onClick={()=>send('vb:nextSet')}>Valider le set</button>
-        </div>
-      </ControlSection>
-    </div>
-  );
-}
+        <ControlGrid>
           <button onClick={()=>send('vb:serve',{team:'home'})}>🏐 Service A</button>
           <button onClick={()=>send('vb:serve',{team:'away'})}>🏐 Service B</button>
         </ControlGrid>

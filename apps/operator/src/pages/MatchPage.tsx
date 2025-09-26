@@ -16,6 +16,9 @@ interface MatchPageProps {
 export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: MatchPageProps) {
   console.log('🎮 MatchPage - Rendu avec match:', match?.name || 'UNDEFINED');
   
+  // État local pour le statut du match (mis à jour en temps réel)
+  const [matchStatus, setMatchStatus] = useState<string>(match.status);
+  
   const [state, setState] = useState<MatchState | null>(null);
   const [chan, setChan] = useState<any>(null);
   const [connectionStatus, setConnectionStatus] = useState<string>('Connexion...');
@@ -40,7 +43,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
   }
   
   // Un match est "démarré" s'il a le statut 'live' dans la base de données
-  const matchStarted = match.status === 'live';
+  const matchStarted = matchStatus === 'live';
 
   // URL du display (mémorisée pour éviter les recalculs)
   const displayUrl = useMemo(() => {
@@ -170,6 +173,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     // Marquer le match comme actif SEULEMENT quand l'horloge démarre
     if (type === 'clock:start') {
       console.log('🔴 Démarrage du match - Marquage comme ACTIF');
+      setMatchStatus('live'); // Mise à jour immédiate de l'affichage
       const markAsLive = async () => {
         try {
           await supa.from('matches').update({ 
@@ -209,6 +213,9 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     }
     
     try {
+      // Mise à jour immédiate de l'affichage
+      setMatchStatus('scheduled');
+      
       // Remettre le match en "scheduled" dans la base
       const { error } = await supa
         .from('matches')
@@ -262,6 +269,9 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     }
     
     setArchiving(true);
+    // Mise à jour immédiate de l'affichage
+    setMatchStatus('archived');
+    
     try {
       const { error } = await supa
         .from('matches')

@@ -63,7 +63,7 @@ function App(){
     async function checkForActiveMatch() {
       try {
         console.log('Display - Recherche de match actif...');
-        setDebugInfo('Recherche de matchs actifs...');
+        setDebugInfo('Recherche de matchs sélectionnés...');
         
         // Chercher tous les matchs avec public_display = true (accessible sans auth)
         let { data: matches, error } = await supa
@@ -85,10 +85,10 @@ function App(){
         setDebugInfo(`Matchs trouvés: ${matches?.length || 0}`);
 
         if (matches && matches.length > 0) {
-          // Chercher d'abord un match "live"
+          // Chercher d'abord un match "live" (actif)
           let match = matches.find(m => m.status === 'live');
           
-          // Sinon prendre le plus récemment modifié
+          // Sinon prendre le plus récemment modifié (sélectionné)
           if (!match) {
             match = matches[0];
           }
@@ -97,30 +97,37 @@ function App(){
           if (!currentMatch || currentMatch.id !== match.id) {
             console.log('Display - Nouveau match sélectionné:', match);
             setCurrentMatch(match);
-            setDebugInfo(`Match sélectionné: ${match.name}`);
+            setDebugInfo(`Match sélectionné: ${match.name} (${match.status})`);
             setHome(match.home_name);
             setAway(match.away_name);
             
-            // Créer un état initial pour afficher le tableau de bord immédiatement
-            const initialState = {
+            // Créer un état initial basé sur le sport du match
+            const initialState: MatchState = {
               matchId: match.id,
               sport: match.sport,
               clock: {
-                durationSec: match.sport === 'basket' ? 600 : match.sport === 'football' ? 2700 : 600,
-                remainingMs: match.sport === 'basket' ? 600000 : match.sport === 'football' ? 2700000 : 600000,
-                running: false,
+                durationSec: getDefaultDuration(match.sport),
+                remainingMs: getDefaultDuration(match.sport) * 1000,
+                running: match.status === 'live', // Seulement si le match est actif
                 period: 1
               },
               score: { home: 0, away: 0 },
-              meta: {}
+              meta: getDefaultMeta(match.sport)
             };
             
             setState(initialState);
             connectToMatch(match);
+            
+            // Mettre à jour le statut de connexion
+            if (match.status === 'live') {
+              setConnectionStatus(`🔴 Match actif: ${match.name}`);
+            } else {
+              setConnectionStatus(`⏸️ Match sélectionné: ${match.name}`);
+            }
           }
         } else {
           console.log('Display - Aucun match public trouvé');
-          setConnectionStatus('Aucun match public disponible');
+          setConnectionStatus('Aucun match sélectionné');
           setDebugInfo('Aucun match public disponible');
           if (currentMatch) {
             setState(null);
@@ -141,7 +148,8 @@ function App(){
         displayConnection.close();
       }
 
-      setConnectionStatus(`Connexion au match: ${match.name}...`);
+      const statusPrefix = match.status === 'live' ? '🔴' : '⏸️';
+      setConnectionStatus(`${statusPrefix} Connexion: ${match.name}...`);
       
       const conn = connectDisplay(
         match.org_slug || 'org',
@@ -149,7 +157,8 @@ function App(){
         match.display_token, 
         (s: MatchState, info: any) => {
           console.log('Display - État reçu:', s, info);
-          setConnectionStatus(`Connecté - ${match.name}`);
+          const statusPrefix = s.clock.running ? '🔴' : '⏸️';
+          setConnectionStatus(`${statusPrefix} Connecté - ${match.name}`);
           setState(s);
           if (info) { 
             setHome(info.home_name || match.home_name); 
@@ -168,6 +177,75 @@ function App(){
       }
     };
   }, [displayConnection, supa, currentMatch]);
+
+  // Fonctions utilitaires pour l'initialisation des états
+  function getDefaultDuration(sport: string): number {
+    switch(sport) {
+      case 'football': return 45 * 60; // 45 minutes
+      case 'handball': return 30 * 60; // 30 minutes
+      case 'basket': return 10 * 60; // 10 minutes
+      case 'hockey_ice': return 20 * 60; // 20 minutes
+      case 'hockey_field': return 15 * 60; // 15 minutes
+      case 'volleyball': return 0; // Pas de temps
+      default: return 10 * 60; // 10 minutes par défaut
+    }
+  }
+
+  function getDefaultMeta(sport: string): any {
+    switch(sport) {
+      case 'volleyball':
+        return {
+          currentSet: 1,
+          bestOf: 5,
+          setsWon: { home: 0, away: 0 },
+          pointsToWin: 25,
+          tieBreakPoints: 15,
+          winBy: 2,
+          serve: 'home',
+          timeouts: { home: 0, away: 0 },
+          maxTimeoutsPerSet: 2
+        };
+      case 'football':
+        return {
+          stoppageMin: 0,
+          cards: { home: { yellow: 0, red: 0 }, away: { yellow: 0, red: 0 } },
+          shootout: { inProgress: false, home: [], away: [] }
+        };
+      case 'handball':
+        return {
+          timeouts: { home: 0, away: 0, maxPerTeam: 3 },
+          suspensions: { home: [], away: [] }
+        };
+      case 'basket':
+        return {
+          foulLimitPerPlayer: 5,
+          teamFouls: { home: 0, away: 0 },
+          bonusThreshold: 5,
+          timeoutsLeft: { home: 5, away: 5 },
+          shotClockMs: 24000,
+          shotRunning: false,
+          roster: {
+            home: [
+              { num: 4, fouls: 0 }, { num: 5, fouls: 0 }, { num: 6, fouls: 0 },
+              { num: 7, fouls: 0 }, { num: 8, fouls: 0 }
+            ],
+            away: [
+              { num: 9, fouls: 0 }, { num: 10, fouls: 0 }, { num: 11, fouls: 0 },
+              { num: 12, fouls: 0 }, { num: 13, fouls: 0 }
+            ]
+          }
+        };
+      case 'hockey_ice':
+        return { penalties: { home: [], away: [] } };
+      case 'hockey_field':
+        return {
+          cards: { home: { green: 0, yellow: 0, red: 0 }, away: { green: 0, yellow: 0, red: 0 } },
+          suspensions: { home: [], away: [] }
+        };
+      default:
+        return {};
+    }
+  }
 
   // Gestion du tick pour les horloges
   useEffect(() => { 
@@ -232,14 +310,21 @@ function App(){
             Match détecté: {currentMatch.name}
             <br />
             {currentMatch.home_name} vs {currentMatch.away_name}
+            <br />
+            <span style={{ 
+              color: currentMatch.status === 'live' ? '#ff6b6b' : '#fbbf24',
+              fontWeight: 'bold'
+            }}>
+              {currentMatch.status === 'live' ? '🔴 ACTIF' : '⏸️ SÉLECTIONNÉ'}
+            </span>
           </div>
         )}
         <div style={{ fontSize: '12px', marginTop: '15px', color: '#666' }}>
           Debug: {debugInfo}
         </div>
         <div style={{ fontSize: '12px', marginTop: '15px', color: '#666' }}>
-          Le tableau de bord s'affichera automatiquement<br />
-          quand un match sera sélectionné dans l'Operator
+          Le tableau de bord s'affiche automatiquement<br />
+          dès qu'un match est sélectionné dans l'Operator
         </div>
       </div>
     )}

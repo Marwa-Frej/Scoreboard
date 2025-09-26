@@ -166,32 +166,6 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       markAsLive();
     }
     
-    // Marquer le match comme non-actif quand l'horloge s'arrête
-    if (type === 'clock:stop') {
-      console.log('⏸️ Arrêt du match - Marquage comme SCHEDULED');
-      const markAsScheduled = async () => {
-        try {
-          await supa.from('matches').update({ 
-            status: 'scheduled',
-            updated_at: new Date().toISOString()
-          }).eq('id', match.id);
-          console.log('✅ Match marqué comme SCHEDULED');
-          // Recharger les matchs pour mettre à jour la liste
-          const { data: updatedMatches } = await supa
-            .from('matches')
-            .select('*')
-            .eq('org_id', match.org_id)
-            .order('scheduled_at', { ascending: true });
-          if (updatedMatches) {
-            onMatchesUpdate(updatedMatches as any);
-          }
-        } catch (error) {
-          console.error('❌ Erreur marquage scheduled:', error);
-        }
-      };
-      markAsScheduled();
-    }
-    
     console.log('🎮 Action envoyée:', type, payload);
     const next = reduce(state, { type, payload });
     console.log('🎮 Nouvel état:', next);
@@ -233,6 +207,16 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
         chan.publish(resetState, match);
       }
       
+      // Recharger les matchs pour mettre à jour la liste
+      const { data: updatedMatches } = await supa
+        .from('matches')
+        .select('*')
+        .eq('org_id', match.org_id)
+        .order('scheduled_at', { ascending: true });
+      if (updatedMatches) {
+        onMatchesUpdate(updatedMatches as any);
+      }
+      
       console.log('Match remis à zéro avec succès');
       
     } catch (err) {
@@ -243,11 +227,6 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
 
   // Fonction d'archivage (mémorisée)
   const archiveMatch = useCallback(async () => {
-    if (matchStarted) {
-      alert('Impossible d\'archiver un match qui a été démarré. Veuillez d\'abord le remettre à zéro ou attendre qu\'il soit terminé.');
-      return;
-    }
-    
     if (!confirm('Êtes-vous sûr de vouloir archiver ce match ? Il sera déplacé dans la section des matchs archivés.')) {
       return;
     }
@@ -267,6 +246,17 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
         alert(`Erreur lors de l'archivage: ${error.message}`);
       } else {
         console.log('Match archivé avec succès');
+        
+        // Recharger les matchs pour mettre à jour la liste
+        const { data: updatedMatches } = await supa
+          .from('matches')
+          .select('*')
+          .eq('org_id', match.org_id)
+          .order('scheduled_at', { ascending: true });
+        if (updatedMatches) {
+          onMatchesUpdate(updatedMatches as any);
+        }
+        
         // Fermer le canal avant de retourner
         if (chan) chan.close();
         onBack();
@@ -276,7 +266,7 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       alert(`Erreur inattendue: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
     }
     setArchiving(false);
-  }, [matchStarted, match.id, chan, onBack]);
+  }, [match.id, match.org_id, chan, onBack, onMatchesUpdate]);
 
   if (!state) {
     return (
@@ -332,29 +322,26 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
           <button 
             onClick={archiveMatch}
             disabled={archiving}
-            title={matchStarted ? "Impossible d'archiver un match qui a été démarré" : "Archiver ce match"}
+            title="Archiver ce match (le rend inactif)"
             style={{ 
-              background: matchStarted ? '#6b7280' : '#f59e0b', 
-              borderColor: matchStarted ? '#6b7280' : '#f59e0b',
+              background: '#f59e0b', 
+              borderColor: '#f59e0b',
               color: 'white',
               minHeight: '40px',
-              cursor: matchStarted ? 'not-allowed' : 'pointer',
-              opacity: matchStarted ? 0.6 : 1
+              cursor: 'pointer'
             }}
           >
             {archiving ? '📦 Archivage...' : '📦 Archiver'}
           </button>
           <button 
             onClick={resetMatch}
-            disabled={!matchStarted}
-            title={matchStarted ? "Remettre le match à zéro" : "Le match n'a pas encore été démarré"}
+            title="Remettre le match à zéro (le rend inactif)"
             style={{ 
-              background: matchStarted ? '#dc2626' : '#6b7280', 
-              borderColor: matchStarted ? '#dc2626' : '#6b7280',
+              background: '#dc2626', 
+              borderColor: '#dc2626',
               color: 'white',
               minHeight: '40px',
-              cursor: matchStarted ? 'pointer' : 'not-allowed',
-              opacity: matchStarted ? 1 : 0.6
+              cursor: 'pointer'
             }}
           >
             🔄 Reset

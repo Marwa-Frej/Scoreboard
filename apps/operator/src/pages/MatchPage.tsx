@@ -55,21 +55,18 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
   useEffect(() => {
     console.log('🎮 MatchPage - Initialisation pour match:', match.id);
     
-    // Ne réinitialiser l'état QUE si le match n'est pas actif
-    // Si le match est actif (status = 'live'), on garde l'état existant
-    if (match.status !== 'live') {
-      const key = `${match.org_id}:${match.id}`;
-      const newState = initMatchState(key, match.sport);
-      setState(newState);
-    } else {
-      // Pour un match actif, créer un état minimal qui sera mis à jour par le canal
-      const key = `${match.org_id}:${match.id}`;
-      const preservedState = initMatchState(key, match.sport);
-      // Garder le chronomètre en marche pour un match actif
-      preservedState.clock.running = true;
-      setState(preservedState);
-      console.log('🔴 Match actif détecté - État préservé avec chronomètre en marche');
+    // Initialiser l'état du match
+    const key = `${match.org_id}:${match.id}`;
+    const initialState = initMatchState(key, match.sport);
+    
+    // Si le match est actif, on va demander l'état actuel via le canal
+    // En attendant, on met le chronomètre en marche pour éviter les à-coups
+    if (match.status === 'live') {
+      initialState.clock.running = true;
+      console.log('🔴 Match actif détecté - Chronomètre démarré, état sera synchronisé');
     }
+    
+    setState(initialState);
     
     // Fermer le canal précédent s'il existe
     if (chan) {
@@ -83,24 +80,48 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
       match.id, 
       match.display_token, 
       () => {
-        console.log('Display demande l\'état du match');
+        console.log('🔄 Display demande l\'état - Envoi de l\'état actuel');
         setConnectionStatus('Display connecté');
-        // Publier l'état actuel
+        // Publier l'état actuel vers le display
         setState(currentState => {
           if (currentState) c.publish(currentState, match);
           return currentState;
         });
       }, 
       () => {
-        console.log('Canal opérateur connecté');
+        console.log('🔌 Canal opérateur connecté');
         setConnectionStatus('Canal prêt');
-        // Publier l'état actuel
-        setState(currentState => {
-          if (currentState) c.publish(currentState, match);
-          return currentState;
-        });
+        
+        // Si le match est actif, demander l'état actuel au display
+        if (match.status === 'live') {
+          console.log('🔄 Match actif - Demande de synchronisation de l\'état');
+          // Envoyer une demande de synchronisation
+          c.requestSync();
+        } else {
+          // Pour un match inactif, publier l'état initial
+          setState(currentState => {
+            if (currentState) c.publish(currentState, match);
+            return currentState;
+          });
+        }
       }
     );
+    
+    // Écouter les mises à jour d'état pour la synchronisation
+    c.onStateUpdate((receivedState) => {
+      console.log('🔄 État reçu pour synchronisation:', receivedState);
+      if (receivedState && match.status === 'live') {
+        console.log('🔄 Synchronisation de l\'état du match actif');
+        setState(currentState => {
+          // Fusionner l'état reçu avec l'état actuel
+          return {
+            ...receivedState,
+            matchId: currentState?.matchId || receivedState.matchId
+          };
+        });
+      }
+    });
+    
     setChan(c);
 
 

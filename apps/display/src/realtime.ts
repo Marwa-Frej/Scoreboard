@@ -26,6 +26,12 @@ export function connectDisplay(org: string, matchId: string, token: string, onSt
     }
   });
   
+  ch.on('broadcast', { event: 'request_sync' }, (p) => {
+    console.log('Display - Demande de synchronisation reçue:', p);
+    // Le display va renvoyer son état actuel
+    // Ceci sera géré par le système existant de demande d'état
+  });
+  
   ch.subscribe(status => {
     console.log('Display - Statut de souscription:', status);
     if (status === 'SUBSCRIBED') {

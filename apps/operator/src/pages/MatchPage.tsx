@@ -91,22 +91,6 @@ export function MatchPage({ match, onBack, activeMatch, onMatchesUpdate }: Match
     );
     setChan(c);
 
-    // Marquer le match comme "scheduled" si nécessaire
-    const markAsScheduled = async () => {
-      try {
-        await supa
-          .from('matches')
-          .update({ 
-            status: 'scheduled',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', match.id);
-        console.log('✅ Match marqué comme scheduled');
-      } catch (err) {
-        console.error('❌ Erreur marquage scheduled:', err);
-      }
-    };
-    markAsScheduled();
 
     // Cleanup à la fermeture
     return () => {

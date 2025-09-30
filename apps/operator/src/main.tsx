@@ -15,7 +15,6 @@ function App() {
   const [matches, setMatches] = useState<MatchInfo[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<MatchInfo | null>(null);
   const [error, setError] = useState<string>('');
-  const [authStep, setAuthStep] = useState<'login' | 'register'>('login');
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [authLoading, setAuthLoading] = useState(false);
 
@@ -135,21 +134,11 @@ function App() {
     setError('');
 
     try {
-      let result;
-      
-      if (authStep === 'login') {
-        console.log('🔐 Auth - Tentative de connexion:', credentials.email);
-        result = await supa.auth.signInWithPassword({
-          email: credentials.email,
-          password: credentials.password
-        });
-      } else {
-        console.log('📝 Auth - Tentative d\'inscription:', credentials.email);
-        result = await supa.auth.signUp({
-          email: credentials.email,
-          password: credentials.password
-        });
-      }
+      console.log('🔐 Auth - Tentative de connexion:', credentials.email);
+      const result = await supa.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password
+      });
 
       if (result.error) {
         console.error('❌ Auth - Erreur:', result.error);
@@ -270,35 +259,21 @@ function App() {
           </h1>
           
           <div style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-              <button
-                onClick={() => setAuthStep('login')}
-                style={{
-                  flex: 1,
-                  padding: '8px 16px',
-                  background: authStep === 'login' ? '#2563eb' : '#374151',
-                  border: `1px solid ${authStep === 'login' ? '#2563eb' : '#374151'}`,
-                  color: 'white',
-                  borderRadius: '8px',
-                  cursor: 'pointer'
-                }}
-              >
-                Connexion
-              </button>
-              <button
-                onClick={() => setAuthStep('register')}
-                style={{
-                  flex: 1,
-                  padding: '8px 16px',
-                  background: authStep === 'register' ? '#2563eb' : '#374151',
-                  border: `1px solid ${authStep === 'register' ? '#2563eb' : '#374151'}`,
-                  color: 'white',
-                  borderRadius: '8px',
-                  cursor: 'pointer'
-                }}
-              >
-                Inscription
-              </button>
+            <div style={{ 
+              textAlign: 'center', 
+              marginBottom: '16px',
+              padding: '12px',
+              background: 'rgba(37, 99, 235, 0.1)',
+              border: '1px solid rgba(37, 99, 235, 0.3)',
+              borderRadius: '8px',
+              fontSize: '14px',
+              color: '#9aa0a6'
+            }}>
+              🔐 Connexion réservée aux utilisateurs autorisés
+              <br />
+              <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                Les comptes sont créés par l'administrateur système
+              </span>
             </div>
             
             <input
@@ -355,7 +330,7 @@ function App() {
                 fontWeight: '500'
               }}
             >
-              {authLoading ? 'Chargement...' : (authStep === 'login' ? 'Se connecter' : 'S\'inscrire')}
+              {authLoading ? 'Connexion en cours...' : 'Se connecter'}
             </button>
           </div>
           
@@ -379,20 +354,7 @@ function App() {
             textAlign: 'center',
             marginTop: '16px'
           }}>
-            {authStep === 'login' ? 'Pas de compte ?' : 'Déjà un compte ?'}
-            <button
-              onClick={() => setAuthStep(authStep === 'login' ? 'register' : 'login')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#2563eb',
-                cursor: 'pointer',
-                textDecoration: 'underline',
-                marginLeft: '4px'
-              }}
-            >
-              {authStep === 'login' ? 'S\'inscrire' : 'Se connecter'}
-            </button>
+            Besoin d'un compte ? Contactez votre administrateur système
           </div>
         </div>
       </div>

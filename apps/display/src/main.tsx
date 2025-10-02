@@ -28,13 +28,8 @@ function App(){
   
   // Vérifier la configuration au démarrage
   useEffect(() => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      setEnvError('Configuration Supabase manquante');
-      return;
-    }
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://opwjfpybcgtgcvldizar.supabase.co';
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wd2pmcHliY2d0Z2N2bGRpemFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0OTQ5MTksImV4cCI6MjA3MzA3MDkxOX0.8yrYMlhFmjAF5_LG9FtCx8XrJ1sFOz2YejDDupbhgpY';
     
     if (supabaseUrl.includes('your_supabase') || supabaseKey.includes('your_supabase')) {
       setEnvError('Configuration Supabase invalide');

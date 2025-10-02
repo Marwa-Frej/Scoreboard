@@ -4,8 +4,8 @@ import type { MatchState } from '@pkg/types';
 export function channelKey(org: string, matchId: string, token: string){ return `match:${org}:${matchId}:${token}`; }
 
 export function connectDisplay(org: string, matchId: string, token: string, onState: (state: MatchState, info?: any)=>void){
-  const url = import.meta.env.VITE_SUPABASE_URL as string;
-  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+  const url = import.meta.env.VITE_SUPABASE_URL || 'https://opwjfpybcgtgcvldizar.supabase.co';
+  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wd2pmcHliY2d0Z2N2bGRpemFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0OTQ5MTksImV4cCI6MjA3MzA3MDkxOX0.8yrYMlhFmjAF5_LG9FtCx8XrJ1sFOz2YejDDupbhgpY';
   const supa = createClient(url, anon, { auth: { persistSession: false } });
   
   const channelName = channelKey(org, matchId, token);
